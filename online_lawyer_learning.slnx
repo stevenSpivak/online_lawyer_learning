@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".gitignore" />
+  </Folder>
+  <Project Path="DAL/DAL.csproj" Id="beaeb0e0-7b54-43d0-9fdc-b673eb10d4a0" />
+  <Project Path="Model/Model.csproj" Id="4730ab6e-818e-44cf-a22f-86b5e02b679e" />
+  <Project Path="OLL.api/OLL.api.csproj" Id="d1f4652b-98d0-4745-a2d0-8cf3cc035193" />
+  <Project Path="view/view.csproj" Id="ebed4ff4-c328-4866-9a04-8080914a1f17" />
+</Solution>
