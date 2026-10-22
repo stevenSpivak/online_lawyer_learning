@@ -1,0 +1,214 @@
+﻿@page "/consultation"
+
+<PageTitle>שאלות והתייעצות | חוק וזכות</PageTitle>
+
+<div class="page-heading">
+    <div>
+        <span class="eyebrow">יש מקום לשאלות</span>
+        <h1>שאלות והתייעצות משפטית</h1>
+        <p>תארו את המצב שמעניין אתכם וקבלו הכוונה ראשונית בשפה ברורה.</p>
+    </div>
+    <div class="heading-icon">☏</div>
+</div>
+
+<div class="consultation-layout">
+    <section class="panel chat-panel">
+        <div class="chat-header">
+            <div class="chat-avatar">⚖</div>
+            <div>
+                <h2>עוזר מידע משפטי</h2>
+                <p><span class="status-dot"></span> אב-טיפוס ללמידה</p>
+            </div>
+            <span class="chat-header-label">מענה ראשוני</span>
+        </div>
+
+        <div class="chat-notice">
+            <span>ⓘ</span>
+            <p>
+                הצ'אט מדגים את ממשק ההתייעצות בלבד. התשובות אינן
+                ייעוץ משפטי מוסמך ואינן נשלחות לשירות AI אמיתי.
+            </p>
+        </div>
+
+        <div class="chat-messages">
+            @foreach (var message in messages)
+            {
+                <div class="chat-message @(message.IsUser ? "chat-message-user" : "chat-message-assistant")">
+                    @if (!message.IsUser)
+                    {
+                        <div class="chat-message-avatar">⚖</div>
+                    }
+
+                    <div class="chat-bubble">
+                        <div class="chat-sender">
+                            @(message.IsUser ? "אתם" : "עוזר המידע")
+                        </div>
+                        <p>@message.Text</p>
+                        <small>@message.Time</small>
+                    </div>
+                </div>
+            }
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(validationMessage))
+        {
+            <div class="chat-validation">@validationMessage</div>
+        }
+
+        <div class="chat-composer">
+            <textarea @bind="question"
+                      @bind:event="oninput"
+                      rows="2"
+                      placeholder="כתבו כאן את השאלה או תיאור המקרה..."
+                      aria-label="תיאור המקרה"></textarea>
+
+            <button class="send-button"
+                    @onclick="SendQuestion"
+                    title="שליחת שאלה">
+                ➤
+            </button>
+        </div>
+
+        <div class="chat-composer-hint">
+            <span>◈ אל תכללו פרטים אישיים רגישים.</span>
+            <span>@question.Length / 1000</span>
+        </div>
+    </section>
+
+    <aside class="consultation-sidebar">
+        <section class="panel tips-panel">
+            <div class="tips-heading">
+                <span>✦</span>
+                <h3>כדי לקבל הכוונה טובה</h3>
+            </div>
+
+            <div class="tip-row">
+                <span>1</span>
+                <p>תארו מה קרה ובאיזה הקשר.</p>
+            </div>
+
+            <div class="tip-row">
+                <span>2</span>
+                <p>ציינו מה תרצו להבין או לפתור.</p>
+            </div>
+
+            <div class="tip-row">
+                <span>3</span>
+                <p>אל תכתבו שמות מלאים או פרטים מזהים.</p>
+            </div>
+        </section>
+
+        <section class="panel human-help-panel">
+            <div class="human-help-icon">♙</div>
+            <h3>רוצים לדבר עם מורה?</h3>
+            <p>אפשר לבקש סיוע אנושי ולהמשיך את השיחה במסגרת הלימודית.</p>
+
+            <button class="btn btn-secondary btn-full"
+                    @onclick="RequestTeacher">
+                בקשת פנייה למורה
+            </button>
+
+            @if (teacherRequestSent)
+            {
+                <div class="inline-feedback feedback-success">
+                    הבקשה סומנה באב-טיפוס. היא לא נשלחה בפועל.
+                </div>
+            }
+        </section>
+
+        <section class="legal-disclaimer">
+            <span>ⓘ</span>
+            <p>
+                המערכת מיועדת ללמידה ולהכוונה כללית בלבד.
+                במקרה דחוף או במקרה משפטי ממשי, פנו למבוגר אחראי
+                או לגורם מקצועי מוסמך.
+            </p>
+        </section>
+    </aside>
+</div>
+
+@code {
+    private sealed record ChatMessage(
+        bool IsUser,
+        string Text,
+        string Time);
+
+    private readonly List<ChatMessage> messages = new()
+    {
+        new(
+            false,
+            "שלום! אני כאן כדי לעזור לכם ללמוד על זכויות וחוקים. תארו בקצרה את השאלה שלכם, ואנסה להציע נושאים שכדאי לבדוק. חשוב לזכור: זו הדגמה לימודית ולא ייעוץ משפטי.",
+            "עכשיו")
+    };
+
+    private string question = "";
+    private string validationMessage = "";
+    private bool teacherRequestSent;
+
+    private void SendQuestion()
+    {
+        var trimmed = question.Trim();
+
+        if (trimmed.Length < 10)
+        {
+            validationMessage =
+                "כדי להמשיך, תארו את השאלה בלפחות 10 תווים.";
+            return;
+        }
+
+        if (trimmed.Length > 1000)
+        {
+            validationMessage = "אפשר להזין עד 1,000 תווים.";
+            return;
+        }
+
+        messages.Add(new ChatMessage(
+            true,
+            trimmed,
+            DateTime.Now.ToString("HH:mm")));
+
+        messages.Add(new ChatMessage(
+            false,
+            CreateDemoReply(trimmed),
+            DateTime.Now.ToString("HH:mm")));
+
+        question = "";
+        validationMessage = "";
+    }
+
+    private static string CreateDemoReply(string text)
+    {
+        var lower = text.ToLowerInvariant();
+
+        if (lower.Contains("בית ספר") ||
+            lower.Contains("מורה") ||
+            lower.Contains("תלמיד") ||
+            lower.Contains("כיתה"))
+        {
+            return "נראה שהשאלה קשורה לזכויות תלמידים ולמערכת החינוך. כדאי להתחיל בעיון בנושא ״חוק זכויות התלמיד״ ולברר את נוהלי בית הספר. זו רק הצעה לנושא בדיקה, לא קביעה משפטית. אפשר להעביר את השאלה למורה כדי לקבל סיוע במסגרת הלימודית.";
+        }
+
+        if (lower.Contains("אינטרנט") ||
+            lower.Contains("תמונה") ||
+            lower.Contains("פרטיות") ||
+            lower.Contains("רשת"))
+        {
+            return "ייתכן שכדאי לבדוק את נושא הפרטיות והפרסום ברשת. חשוב לשמור תיעוד רלוונטי ולא להפיץ מידע אישי נוסף. התשובה כאן כללית בלבד, וכדאי להתייעץ עם מורה או גורם מוסמך לפני פעולה במקרה אמיתי.";
+        }
+
+        if (lower.Contains("עבודה") ||
+            lower.Contains("משכורת") ||
+            lower.Contains("שכר") ||
+            lower.Contains("מעסיק"))
+        {
+            return "ייתכן שהשאלה קשורה לזכויות בעבודה. הכללים תלויים בגיל, בסוג העבודה ובנסיבות, ולכן כדאי לבדוק את המקור הרשמי והעדכני בנושא שעות עבודה וזכויות עובדים. אפשר לבקש מהמורה לעזור למצוא את הסעיף המתאים.";
+        }
+
+        return "תודה על תיאור המקרה. כדי להבין אילו זכויות עשויות להיות רלוונטיות, כדאי לזהות את הנושא המרכזי, לבדוק את החוק או ההנחיות העדכניות ולברר אם קיימים חריגים. אני אב-טיפוס לימודי ולא יכול לקבוע מה הדין במקרה הספציפי. מומלץ להעביר את השאלה למורה או לגורם מקצועי מוסמך.";
+    }
+
+    private void RequestTeacher()
+    {
+        teacherRequestSent = true;
+    }
+}

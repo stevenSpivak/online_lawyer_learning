@@ -1,6 +1,200 @@
-@OLL.api_HostAddress = http://localhost:5165
+# קובץ בדיקות לנקודות הקצה של API המשתמשים.
+# מריצים את OLL.api, ואז לוחצים על הקישור שמופיע מעל כל בקשה.
+# הסימן ### מפריד בין בקשה לבקשה.
 
-GET {{OLL.api_HostAddress}}/weatherforecast/
+# הכתובת של שרת ה-API.
+@OLL_api_HostAddress = http://localhost:5214
+
+
+### =========================================================
+### משתמשים
+### =========================================================
+
+
+### כל המשתמשים
+# צפוי: 200 OK
+# כרגע אמור להחזיר את המשתמש test2.user עם ID 3.
+GET {{OLL_api_HostAddress}}/api/users
 Accept: application/json
 
-###
+
+### משתמש לפי מזהה
+# צפוי: 200 OK
+# המשתמש הקיים כרגע הוא ID 3.
+GET {{OLL_api_HostAddress}}/api/users/3
+Accept: application/json
+
+
+### משתמש שלא קיים
+# צפוי: 404 Not Found
+# אין כרגע משתמש עם ID 1.
+GET {{OLL_api_HostAddress}}/api/users/1
+Accept: application/json
+
+
+### בדיקה האם שם המשתמש test.user קיים
+# צפוי: true
+GET {{OLL_api_HostAddress}}/api/users/exists/test.user2
+
+
+### בדיקה האם שם משתמש אחר קיים
+# צפוי: false
+GET {{OLL_api_HostAddress}}/api/users/exists/admin
+
+
+### בדיקה האם האימייל test@example.com קיים
+# צפוי: true
+GET {{OLL_api_HostAddress}}/api/users/email-exists/test2@example.com
+
+
+### בדיקה האם אימייל אחר קיים
+# צפוי: false
+GET {{OLL_api_HostAddress}}/api/users/email-exists/admin@example.com
+
+
+### ספירת משתמשים לפי תפקיד
+# צפוי: 200 OK
+GET {{OLL_api_HostAddress}}/api/users/count-by-role
+
+
+### =========================================================
+### הוספת משתמש
+### =========================================================
+
+
+### הוספת משתמש חדש
+# צפוי: 201 Created
+#
+# חשוב:
+# המשתמש test.user כבר קיים ולכן אסור להשתמש בו שוב.
+# המשתמש החדש יקבל תפקיד Student כברירת מחדל.
+#
+# לאחר יצירת המשתמש, ה-ID שלו יופיע בתוצאה.
+# השתמש ב-ID הזה בבקשות העדכון בהמשך.
+
+POST {{OLL_api_HostAddress}}/api/users
+Content-Type: application/json
+
+{
+  "username": "test.user3",
+  "email": "test3@example.com",
+  "passwordHash": "Test123Hash",
+  "isActive": true
+}
+
+
+### =========================================================
+### התחברות
+### =========================================================
+
+
+### התחברות עם המשתמש הקיים
+# צפוי: 200 OK אם הסיסמה test123Hash נכונה
+# לפי הנתונים הנוכחיים בבסיס הנתונים:
+# username = test2.user
+# passwordHash = Test123Hash
+
+POST {{OLL_api_HostAddress}}/api/users/login
+Content-Type: application/json
+
+{
+  "username": "test.user2",
+  "passwordHash": "Test123Hash"
+}
+
+
+### התחברות עם סיסמה שגויה
+# צפוי: 401 Unauthorized
+
+POST {{OLL_api_HostAddress}}/api/users/login
+Content-Type: application/json
+
+{
+  "username": "test.user",
+  "passwordHash": "wrong"
+}
+
+
+### התחברות עם משתמש שלא קיים
+# צפוי: 401 Unauthorized
+
+POST {{OLL_api_HostAddress}}/api/users/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "passwordHash": "Admin123Hash"
+}
+
+
+### =========================================================
+### עדכון משתמש
+### =========================================================
+#
+# המשתמש הקיים כרגע הוא ID 3.
+#
+# אם יצרת את test.user3 למעלה, הוא יקבל ID חדש.
+# במקרה כזה אפשר להחליף את 3 ב-ID החדש.
+#
+# שים לב:
+# אל תריץ את הבקשות האלה על ID 1,
+# כי משתמש 1 לא קיים בבסיס הנתונים.
+#
+
+
+# שינוי תפקיד של משתמש 3
+# צפוי: 204 No Content
+PUT {{OLL_api_HostAddress}}/api/users/3/role?roleName=Administrator
+
+
+### עדכון סיסמה של משתמש 3
+# צפוי: 204 No Content
+
+PUT {{OLL_api_HostAddress}}/api/users/3/password
+Content-Type: application/json
+
+"NewHash123"
+
+
+### עדכון אימייל של משתמש 3
+# צפוי: 204 No Content
+
+PUT {{OLL_api_HostAddress}}/api/users/3/email
+Content-Type: application/json
+
+"new.test.user@example.com"
+
+
+### שינוי מצב המשתמש לבלתי פעיל
+# צפוי: 204 No Content
+
+PUT {{OLL_api_HostAddress}}/api/users/3/status?isActive=false
+
+
+### =========================================================
+### בדיקה לאחר העדכונים
+### =========================================================
+
+
+### הצגת משתמש 3 לאחר העדכונים
+# צפוי: 200 OK
+# כאן אפשר לראות את השינויים שביצענו.
+
+GET {{OLL_api_HostAddress}}/api/users/3
+Accept: application/json
+
+
+### =========================================================
+### מחיקה
+### =========================================================
+
+
+### מחיקת משתמש 3
+# צפוי: 204 No Content
+#
+# אזהרה:
+# הבקשה הזאת מוחקת את המשתמש 3.
+# אם אתה רוצה לשמור אותו, אל תריץ אותה.
+
+DELETE {{OLL_api_HostAddress}}/api/users/3
+

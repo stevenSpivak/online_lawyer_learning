@@ -1,23 +1,118 @@
 ﻿@inherits LayoutComponentBase
 
-<div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
+<div class="app-shell">
+    <aside class="sidebar">
+        <a class="brand" href="/" aria-label="חוק וזכות - דף הבית">
+            <span class="brand-mark">⚖</span>
+            <span class="brand-copy">
+                <strong>חוק וזכות</strong>
+                <small>לומדים. שואלים. מקבלים מענה.</small>
+            </span>
+        </a>
 
-    <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+        <div class="profile-mini">
+            <div class="avatar">י</div>
+            <div>
+                <strong>יואב כהן</strong>
+                <small>תלמיד</small>
+            </div>
+            <span class="profile-dot"></span>
         </div>
 
-        <article class="content px-4">
-            @Body
-        </article>
-    </main>
-</div>
+        <div class="nav-caption">התפריט שלי</div>
 
-<div id="blazor-error-ui" data-nosnippet>
-    An unhandled error has occurred.
-    <a href="." class="reload">Reload</a>
-    <span class="dismiss">🗙</span>
+        <nav class="side-nav">
+            <NavLink href="/" Match="NavLinkMatch.All">
+                <span class="nav-icon">⌂</span>
+                <span>דף הבית</span>
+            </NavLink>
+
+            <NavLink href="/laws">
+                <span class="nav-icon">⚖</span>
+                <span>חיפוש חוקים</span>
+            </NavLink>
+
+            <NavLink href="/classes">
+                <span class="nav-icon">▤</span>
+                <span>כיתות לימוד</span>
+            </NavLink>
+
+            <NavLink href="/consultation">
+                <span class="nav-icon">☏</span>
+                <span>שאלות והתייעצות</span>
+                <span class="nav-badge">חדש</span>
+            </NavLink>
+
+            <NavLink href="/quiz">
+                <span class="nav-icon">✓</span>
+                <span>שאלון ידע</span>
+            </NavLink>
+        </nav>
+
+        <div class="nav-caption nav-caption-spaced">ניהול</div>
+
+        <nav class="side-nav">
+            <NavLink href="/teacher">
+                <span class="nav-icon">▣</span>
+                <span>ניהול מורה</span>
+            </NavLink>
+
+            <NavLink href="/admin">
+                <span class="nav-icon">⚙</span>
+                <span>ניהול מערכת</span>
+            </NavLink>
+        </nav>
+
+        <div class="sidebar-bottom">
+            <div class="help-box">
+                <span class="help-icon">?</span>
+                <div>
+                    <strong>צריכים עזרה?</strong>
+                    <small>אנחנו כאן בשבילכם</small>
+                </div>
+            </div>
+
+            <a class="logout-link" href="/login">
+                <span>↪</span> יציאה מהמערכת
+            </a>
+        </div>
+    </aside>
+
+    <section class="workspace">
+        <header class="topbar">
+            <div class="breadcrumb">
+                <span>מרחב למידה</span>
+                <span class="breadcrumb-sep">/</span>
+                <strong>חוק וזכות</strong>
+            </div>
+
+            <div class="topbar-actions">
+                <button class="icon-button"
+                        title="התראות"
+                        aria-label="התראות">
+                    ♧
+                    <i class="notification-dot"></i>
+                </button>
+
+                <div class="topbar-user">
+                    <div class="avatar avatar-small">י</div>
+                    <span>שלום, יואב!</span>
+                    <span class="chevron">⌄</span>
+                </div>
+            </div>
+        </header>
+
+        <main class="page-body">
+            @Body
+        </main>
+
+        <footer class="site-footer">
+            <span>© 2026 חוק וזכות</span>
+            <span>ידע על הזכויות שלך הוא כוח</span>
+            <span class="footer-links">
+                <a href="/laws">מאגר חוקים</a>
+                <a href="/consultation">ייעוץ</a>
+            </span>
+        </footer>
+    </section>
 </div>

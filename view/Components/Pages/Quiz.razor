@@ -1,0 +1,249 @@
+﻿@page "/quiz"
+
+<PageTitle>שאלון ידע | חוק וזכות</PageTitle>
+
+<div class="page-heading">
+    <div>
+        <span class="eyebrow">לומדים דרך תרגול</span>
+        <h1>שאלון ידע: הזכויות שלנו</h1>
+        <p>ענו על כמה שאלות קצרות כדי לבדוק את הידע שלכם.</p>
+    </div>
+    <div class="heading-icon">✓</div>
+</div>
+
+@if (finished)
+{
+    <section class="quiz-result panel">
+        <div class="quiz-result-icon">✦</div>
+        <span class="eyebrow">סיימתם את התרגול</span>
+        <h2>כל הכבוד על ההשתתפות!</h2>
+
+        <p>
+            עניתם נכון על
+            <strong>@score מתוך @questions.Count</strong>
+            שאלות.
+        </p>
+
+        <div class="result-score-ring">
+            <span>@(score * 100 / questions.Count)%</span>
+        </div>
+
+        <p class="muted-small">
+            השאלון נועד לתרגול לימודי ואינו מבחן משפטי.
+        </p>
+
+        <div class="result-actions">
+            <button class="btn btn-primary" @onclick="Restart">
+                לנסות שוב ↻
+            </button>
+            <a class="btn btn-secondary" href="/laws">
+                לחזרה למאגר החוקים
+            </a>
+        </div>
+    </section>
+}
+else
+{
+    <div class="quiz-layout">
+        <section class="panel quiz-main">
+            <div class="quiz-topline">
+                <span class="pill pill-blue">ידע כללי</span>
+                <span>שאלה @(currentIndex + 1) מתוך @questions.Count</span>
+            </div>
+
+            <div class="quiz-progress">
+                <span style="width:@(((currentIndex + 1) * 100 / questions.Count))%"></span>
+            </div>
+
+            <div class="quiz-topic-icon">⚖</div>
+
+            <h2>@questions[currentIndex].Question</h2>
+            <p class="quiz-instruction">
+                בחרו תשובה אחת מתוך האפשרויות.
+            </p>
+
+            <div class="answer-options">
+                @for (var i = 0; i < questions[currentIndex].Options.Length; i++)
+                {
+                    var optionIndex = i;
+
+                    <button class="answer-option @(selectedAnswer == optionIndex ? (optionIndex == questions[currentIndex].CorrectIndex ? "answer-correct" : "answer-wrong") : "")"
+                            disabled="@(selectedAnswer.HasValue)"
+                            @onclick="() => SelectAnswer(optionIndex)">
+                        <span class="answer-letter">
+                            @((char)('א' + optionIndex))
+                        </span>
+
+                        <span>
+                            @questions[currentIndex].Options[optionIndex]
+                        </span>
+
+                        @if (selectedAnswer.HasValue &&
+                             optionIndex == questions[currentIndex].CorrectIndex)
+                        {
+                            <span class="answer-check">✓</span>
+                        }
+                    </button>
+                }
+            </div>
+
+            @if (selectedAnswer.HasValue)
+            {
+                <div class="quiz-feedback @(selectedAnswer == questions[currentIndex].CorrectIndex ? "quiz-feedback-correct" : "quiz-feedback-wrong")">
+                    <strong>
+                        @(selectedAnswer == questions[currentIndex].CorrectIndex
+                            ? "נכון מאוד!"
+                            : "לא בדיוק — הנה התשובה הנכונה.")
+                    </strong>
+
+                    <p>@questions[currentIndex].Explanation</p>
+                </div>
+
+                <button class="btn btn-primary btn-full quiz-next"
+                        @onclick="NextQuestion">
+                    @(currentIndex == questions.Count - 1
+                        ? "הצגת התוצאה"
+                        : "לשאלה הבאה")
+                    <span>←</span>
+                </button>
+            }
+        </section>
+
+        <aside class="panel quiz-side">
+            <div class="quiz-side-art">✧</div>
+
+            <h3>לומדים תוך כדי תרגול</h3>
+            <p>
+                כל שאלה היא הזדמנות להכיר טוב יותר את הזכויות
+                ואת הכללים שמקיפים אותנו.
+            </p>
+
+            <div class="quiz-side-stats">
+                <div>
+                    <strong>@(selectedAnswer.HasValue ? currentIndex + 1 : currentIndex)</strong>
+                    <small>שאלות שנענו</small>
+                </div>
+                <div>
+                    <strong>@score</strong>
+                    <small>תשובות נכונות</small>
+                </div>
+            </div>
+
+            <div class="tip-note">
+                <span>✦</span>
+                <p>לא בטוחים בתשובה? חפשו את הנושא במאגר החוקים.</p>
+            </div>
+
+            <a class="btn btn-secondary btn-full" href="/laws">
+                פתיחת מאגר החוקים
+            </a>
+        </aside>
+    </div>
+}
+
+@code {
+    private sealed record QuizQuestion(
+        string Question,
+        string[] Options,
+        int CorrectIndex,
+        string Explanation);
+
+    private readonly List<QuizQuestion> questions = new()
+    {
+        new(
+            "מהי מטרתו המרכזית של חוק יסוד: כבוד האדם וחירותו?",
+            new[]
+            {
+                "להסדיר את כל כללי התעבורה",
+                "להגן על כבוד האדם וחירותו",
+                "לקבוע את מערכת השעות בבתי הספר",
+                "להסדיר את מחירי המוצרים"
+            },
+            1,
+            "חוק היסוד נועד להגן על כבוד האדם וחירותו ולעגן ערכים אלה בחוק יסוד."),
+
+        new(
+            "מה כדאי לעשות אם לא מבינים את הזכויות במקרה מסוים?",
+            new[]
+            {
+                "להניח שאין זכויות בנושא",
+                "לפרסם את כל הפרטים ברשת",
+                "לבדוק מקור רשמי ולפנות לגורם מוסמך",
+                "להסתמך רק על שמועה"
+            },
+            2,
+            "כדאי לבדוק מקור רשמי ועדכני ולהיעזר במורה או בגורם מקצועי מוסמך."),
+
+        new(
+            "מה חשוב לזכור לפני שמפרסמים תמונה של אדם אחר?",
+            new[]
+            {
+                "שכל תמונה מותרת לפרסום",
+                "שכדאי להתחשב בפרטיות ובהסכמה",
+                "שאין צורך לחשוב על ההשלכות",
+                "שאפשר לפרסם כל מידע אישי"
+            },
+            1,
+            "פרסום תמונה או מידע על אדם אחר עשוי להשפיע על פרטיותו. חשוב לבדוק הסכמה והקשר."),
+
+        new(
+            "למי אפשר לפנות במסגרת הלימודית כשעולה שאלה על זכויות תלמיד?",
+            new[]
+            {
+                "רק למשתמשים ברשתות חברתיות",
+                "למורה או לגורם מתאים בבית הספר",
+                "לאף אחד",
+                "רק לחנות ספרים"
+            },
+            1,
+            "מורה או גורם מתאים בבית הספר יכולים לעזור להבין את הנהלים ואת המקורות הרלוונטיים."),
+
+        new(
+            "למה חשוב לבדוק שהמידע המשפטי עדכני?",
+            new[]
+            {
+                "כי חוקים והנחיות יכולים להשתנות",
+                "כי מידע ישן תמיד מדויק יותר",
+                "כי אין מקורות רשמיים",
+                "כי כל אתר מפרש חוק באותו אופן"
+            },
+            0,
+            "יש לוודא שהמקור עדכני, משום שחקיקה, תקנות ונהלים עשויים להשתנות.")
+    };
+
+    private int currentIndex;
+    private int? selectedAnswer;
+    private int score;
+    private bool finished;
+
+    private void SelectAnswer(int index)
+    {
+        if (selectedAnswer.HasValue)
+            return;
+
+        selectedAnswer = index;
+
+        if (index == questions[currentIndex].CorrectIndex)
+            score++;
+    }
+
+    private void NextQuestion()
+    {
+        if (currentIndex >= questions.Count - 1)
+        {
+            finished = true;
+            return;
+        }
+
+        currentIndex++;
+        selectedAnswer = null;
+    }
+
+    private void Restart()
+    {
+        currentIndex = 0;
+        selectedAnswer = null;
+        score = 0;
+        finished = false;
+    }
+}

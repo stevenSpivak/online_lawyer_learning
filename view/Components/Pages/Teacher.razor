@@ -1,0 +1,349 @@
+﻿@page "/teacher"
+
+<PageTitle>ניהול מורה | חוק וזכות</PageTitle>
+
+<div class="page-heading">
+    <div>
+        <span class="eyebrow">מרחב למורים</span>
+        <h1>ניהול כיתות לימוד</h1>
+        <p>יצירת כיתות, מעקב אחר תלמידים וארגון חומרי הלמידה.</p>
+    </div>
+
+    <button class="btn btn-primary" @onclick="ToggleCreate">
+        ＋ יצירת כיתה חדשה
+    </button>
+</div>
+
+@if (showCreate)
+{
+    <section class="panel create-class-panel">
+        <div>
+            <h2>יצירת כיתה חדשה</h2>
+            <p>הזינו שם לכיתה כדי להציג אותה ברשימה.</p>
+        </div>
+
+        <div class="create-class-form">
+            <input @bind="newClassName"
+                   placeholder="לדוגמה: מבוא לזכויות אזרח" />
+
+            <button class="btn btn-primary" @onclick="CreateClass">
+                יצירת כיתה
+            </button>
+
+            <button class="btn btn-secondary" @onclick="ToggleCreate">
+                ביטול
+            </button>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(createMessage))
+        {
+            <p class="inline-feedback feedback-success">
+                @createMessage
+            </p>
+        }
+    </section>
+}
+
+@if (!string.IsNullOrWhiteSpace(pageMessage))
+{
+    <div class="inline-feedback feedback-success">
+        @pageMessage
+    </div>
+}
+
+<section class="stats-grid stats-grid-four">
+    <div class="stat-card panel">
+        <div class="stat-icon icon-blue">♧</div>
+        <div>
+            <span>תלמידים</span>
+            <strong>52</strong>
+            <small>בשתי כיתות</small>
+        </div>
+    </div>
+
+    <div class="stat-card panel">
+        <div class="stat-icon icon-teal">▤</div>
+        <div>
+            <span>כיתות פעילות</span>
+            <strong>@classNames.Count</strong>
+            <small>כולל כיתות שנוצרו כאן</small>
+        </div>
+    </div>
+
+    <div class="stat-card panel">
+        <div class="stat-icon icon-violet">☏</div>
+        <div>
+            <span>פניות ממתינות</span>
+            <strong>4</strong>
+            <small>דורשות מעקב</small>
+        </div>
+    </div>
+
+    <div class="stat-card panel">
+        <div class="stat-icon icon-gold">✓</div>
+        <div>
+            <span>חומרי למידה</span>
+            <strong>12</strong>
+            <small>במאגר לדוגמה</small>
+        </div>
+    </div>
+</section>
+
+<section class="panel management-panel">
+    <div class="panel-heading">
+        <div>
+            <span class="eyebrow">הקבוצות שלי</span>
+            <h2>כיתות לימוד</h2>
+        </div>
+
+        <div class="table-toolbar">
+            <input @bind="classSearch"
+                   @bind:event="oninput"
+                   placeholder="חיפוש כיתה..." />
+
+            <span class="pill pill-blue">
+                @FilteredClasses.Count() כיתות
+            </span>
+        </div>
+    </div>
+
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>שם הכיתה</th>
+                    <th>קוד הצטרפות</th>
+                    <th>תלמידים</th>
+                    <th>סטטוס</th>
+                    <th>פעולות</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                @foreach (var classroom in FilteredClasses)
+                {
+                    <tr>
+                        <td>
+                            <div class="table-primary-cell">
+                                <span class="table-icon">▤</span>
+                                <div>
+                                    <strong>@classroom.Name</strong>
+                                    <small>@classroom.Subject</small>
+                                </div>
+                            </div>
+                        </td>
+
+                        <td>
+                            <span class="code-chip">@classroom.Code</span>
+                        </td>
+
+                        <td>@classroom.Students</td>
+
+                        <td>
+                            <span class="pill pill-green">פעילה</span>
+                        </td>
+
+                        <td>
+                            <button class="table-action"
+                                    @onclick="() => ShowClass(classroom.Name)">
+                                צפייה
+                            </button>
+
+                            <button class="table-action table-action-danger"
+                                    @onclick="() => RemoveClass(classroom.Name)">
+                                הסרה
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @if (!FilteredClasses.Any())
+    {
+        <div class="empty-inline">
+            לא נמצאו כיתות שתואמות לחיפוש.
+        </div>
+    }
+</section>
+
+<section class="panel management-panel">
+    <div class="panel-heading">
+        <div>
+            <span class="eyebrow">מעקב לימודי</span>
+            <h2>תלמידים אחרונים</h2>
+        </div>
+
+        <a class="text-link" href="/admin">
+            לניהול משתמשים ←
+        </a>
+    </div>
+
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>תלמיד/ה</th>
+                    <th>כיתה</th>
+                    <th>התקדמות</th>
+                    <th>פעילות אחרונה</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                <tr>
+                    <td>
+                        <div class="person-cell">
+                            <span class="avatar avatar-table">א</span>
+                            <strong>איתי ברק</strong>
+                        </div>
+                    </td>
+                    <td>זכויות אדם ואזרח</td>
+                    <td>
+                        <div class="table-progress">
+                            <div class="progress-track">
+                                <span style="width:80%"></span>
+                            </div>
+                            <small>80%</small>
+                        </div>
+                    </td>
+                    <td>היום, 10:24</td>
+                </tr>
+
+                <tr>
+                    <td>
+                        <div class="person-cell">
+                            <span class="avatar avatar-table avatar-mint">ש</span>
+                            <strong>שירה לוי</strong>
+                        </div>
+                    </td>
+                    <td>זכויות אדם ואזרח</td>
+                    <td>
+                        <div class="table-progress">
+                            <div class="progress-track">
+                                <span style="width:55%"></span>
+                            </div>
+                            <small>55%</small>
+                        </div>
+                    </td>
+                    <td>אתמול, 14:10</td>
+                </tr>
+
+                <tr>
+                    <td>
+                        <div class="person-cell">
+                            <span class="avatar avatar-table avatar-lilac">ד</span>
+                            <strong>דניאל כהן</strong>
+                        </div>
+                    </td>
+                    <td>חוקי יסוד בישראל</td>
+                    <td>
+                        <div class="table-progress">
+                            <div class="progress-track">
+                                <span style="width:30%"></span>
+                            </div>
+                            <small>30%</small>
+                        </div>
+                    </td>
+                    <td>17.10.2026</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+@code {
+    private sealed record Classroom(
+        string Name,
+        string Subject,
+        string Code,
+        int Students);
+
+    private readonly List<Classroom> classrooms = new()
+    {
+        new("זכויות אדם ואזרח",
+            "כיתה י׳ · אזרחות",
+            "7F3B",
+            28),
+
+        new("חוקי יסוד בישראל",
+            "כיתה י׳ · מבוא למשפט",
+            "9A2C",
+            24)
+    };
+
+    private readonly List<string> classNames = new()
+    {
+        "זכויות אדם ואזרח",
+        "חוקי יסוד בישראל"
+    };
+
+    private string classSearch = "";
+    private bool showCreate;
+    private string newClassName = "";
+    private string createMessage = "";
+    private string pageMessage = "";
+
+    private IEnumerable<Classroom> FilteredClasses =>
+        classrooms.Where(c =>
+            c.Name.Contains(classSearch.Trim(),
+                StringComparison.OrdinalIgnoreCase));
+
+    private void ToggleCreate()
+    {
+        showCreate = !showCreate;
+        createMessage = "";
+    }
+
+    private void CreateClass()
+    {
+        var name = newClassName.Trim();
+
+        if (name.Length < 3)
+        {
+            createMessage = "שם הכיתה צריך להכיל לפחות 3 תווים.";
+            return;
+        }
+
+        if (classrooms.Any(c =>
+            c.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
+        {
+            createMessage = "כיתה בשם הזה כבר קיימת.";
+            return;
+        }
+
+        var code = Guid.NewGuid().ToString("N")[..4].ToUpperInvariant();
+
+        classrooms.Add(new Classroom(
+            name,
+            "כיתה חדשה",
+            code,
+            0));
+
+        classNames.Add(name);
+
+        createMessage =
+            $"הכיתה נוספה לאב-טיפוס. קוד הדוגמה: {code}";
+
+        newClassName = "";
+
+        pageMessage =
+            "הכיתה נוצרה בממשק המקומי. היא לא נשמרה במסד נתונים.";
+    }
+
+    private void RemoveClass(string name)
+    {
+        classrooms.RemoveAll(c => c.Name == name);
+        classNames.Remove(name);
+
+        pageMessage =
+            $"הכיתה ״{name}״ הוסרה מהרשימה המקומית.";
+    }
+
+    private void ShowClass(string name)
+    {
+        pageMessage =
+            $"נבחרה הכיתה ״{name}״. מסך פרטי כיתה יחובר בהמשך.";
+    }
+}

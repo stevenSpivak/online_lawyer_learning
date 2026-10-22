@@ -1,0 +1,213 @@
+﻿@page "/laws/{Id:int}"
+@inject LawApiClient LawApi
+
+<PageTitle>פרטי חוק | חוק וזכות</PageTitle>
+
+@if (isLoading)
+{
+    <div class="panel empty-state">
+        <p>טוען את פרטי החוק...</p>
+    </div>
+}
+else if (!string.IsNullOrWhiteSpace(loadError))
+{
+    <div class="panel empty-state">
+        <div class="empty-icon">!</div>
+        <h1>לא ניתן לטעון את החוק</h1>
+        <p>@loadError</p>
+        <a class="btn btn-primary" href="/laws">
+            חזרה למאגר
+        </a>
+    </div>
+}
+else if (law is null)
+{
+    <div class="panel empty-state">
+        <div class="empty-icon">⚖</div>
+        <h1>החוק לא נמצא</h1>
+        <p>ייתכן שהרשומה הוסרה או שהקישור אינו תקין.</p>
+
+        <a class="btn btn-primary" href="/laws">
+            חזרה למאגר החוקים
+        </a>
+    </div>
+}
+else
+{
+    <div class="page-heading">
+        <div>
+            <a class="back-link" href="/laws">
+                ← חזרה למאגר החוקים
+            </a>
+
+            <div class="result-tags detail-tags">
+                <span class="pill pill-blue">
+                    @law.CategoryName
+                </span>
+
+                <span class="muted-small">
+                    נוסף:
+                    @(law.CreatedAt?.ToString("dd.MM.yyyy")
+                      ?? "לא ידוע")
+                </span>
+            </div>
+
+            <h1>@law.Title</h1>
+
+            <p>פרטי החוק כפי שהם שמורים במאגר המערכת.</p>
+        </div>
+
+        <div class="heading-icon">
+            @GetIcon(law.CategoryName)
+        </div>
+    </div>
+
+    <div class="law-detail-layout">
+        <main class="panel law-detail-main">
+            <div class="detail-section-heading">
+                <span class="detail-section-icon">▤</span>
+
+                <div>
+                    <h2>תוכן החוק</h2>
+                    <p>המידע נשמר בטבלת Laws</p>
+                </div>
+            </div>
+
+            <div class="detail-body-text law-content">
+                @law.Content
+            </div>
+
+            <div class="soft-info-box">
+                <span>ⓘ</span>
+
+                <p>
+                    <strong>חשוב לדעת</strong><br />
+                    התוכן מוצג כפי שנשמר במערכת. לפני הסתמכות
+                    על מידע במקרה אמיתי, בדקו את הנוסח הרשמי
+                    והעדכני או פנו לגורם משפטי מוסמך.
+                </p>
+            </div>
+
+            <div class="detail-action-row">
+                <a class="btn btn-primary" href="/consultation">
+                    יש לי שאלה בנושא <span>←</span>
+                </a>
+
+                <a class="btn btn-secondary" href="/laws">
+                    חזרה לתוצאות
+                </a>
+            </div>
+        </main>
+
+        <aside class="panel detail-side-panel">
+            <h3>חוקים נוספים במאגר</h3>
+
+            @if (relatedLaws.Count == 0)
+            {
+                <p class="muted-small">
+                    אין חוקים נוספים להצגה.
+                </p>
+            }
+            else
+            {
+                @foreach (var related in relatedLaws)
+                {
+                    <a class="related-law"
+                       href="@($"/laws/{related.Id}")">
+                        <span class="related-icon">
+                            @GetIcon(related.CategoryName)
+                        </span>
+
+                        <span>
+                            <strong>@related.Title</strong>
+                            <small>@related.CategoryName</small>
+                        </span>
+
+                        <span>←</span>
+                    </a>
+                }
+            }
+
+            <div class="side-help">
+                <div class="side-help-icon">☏</div>
+
+                <h4>לא בטוחים איך זה קשור אליכם?</h4>
+
+                <p>
+                    אפשר לנסח שאלה ולקבל הכוונה לימודית ראשונית.
+                </p>
+
+                <a class="text-link" href="/consultation">
+                    לשאלות והתייעצות ←
+                </a>
+            </div>
+        </aside>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private Law? law;
+    private List<Law> relatedLaws = new();
+
+    private bool isLoading = true;
+    private string loadError = "";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        isLoading = true;
+        law = null;
+        relatedLaws.Clear();
+        loadError = "";
+
+        try
+        {
+            law = await LawApi.GetLawAsync(Id);
+
+            if (law is not null)
+            {
+                relatedLaws = (await LawApi.GetLawsAsync())
+                    .Where(x =>
+                        x.Id != law.Id &&
+                        x.CategoryId == law.CategoryId)
+                    .Take(4)
+                    .ToList();
+            }
+        }
+        catch (HttpRequestException)
+        {
+            loadError =
+                "ודאו שפרויקט OLL.api פועל ושהחיבור למסד הנתונים תקין.";
+        }
+        catch (Exception)
+        {
+            loadError = "אירעה שגיאה בעת טעינת פרטי החוק.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private static string GetIcon(string? category) =>
+        (category ?? "").ToLowerInvariant() switch
+        {
+            var c when c.Contains("student")
+                     || c.Contains("נוער")
+                     || c.Contains("תלמיד") => "🎓",
+
+            var c when c.Contains("traffic")
+                     || c.Contains("road")
+                     || c.Contains("תעבורה") => "🚦",
+
+            var c when c.Contains("privacy")
+                     || c.Contains("פרטיות") => "🔒",
+
+            var c when c.Contains("tort")
+                     || c.Contains("נזיקין") => "🛡",
+
+            _ => "⚖"
+        };
+}

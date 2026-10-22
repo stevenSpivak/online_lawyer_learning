@@ -1,0 +1,126 @@
+﻿@page "/register"
+@layout BlankLayout
+@inject NavigationManager Navigation
+
+<PageTitle>הרשמה | חוק וזכות</PageTitle>
+
+<div class="auth-page">
+    <div class="auth-visual">
+        <a class="brand brand-auth" href="/">
+            <span class="brand-mark">⚖</span>
+            <span class="brand-copy">
+                <strong>חוק וזכות</strong>
+                <small>לומדים. שואלים. מקבלים מענה.</small>
+            </span>
+        </a>
+
+        <div class="auth-illustration">
+            <div class="auth-glow"></div>
+            <span class="auth-scales">⚖</span>
+            <div class="auth-book auth-book-one"></div>
+            <div class="auth-book auth-book-two"></div>
+            <span class="auth-star">✦</span>
+        </div>
+
+        <div class="auth-visual-copy">
+            <h1>מתחילים ללמוד.<br /><span>מכירים את הזכויות.</span></h1>
+            <p>הצטרפו למרחב למידה שמנגיש חוקים וזכויות בשפה פשוטה.</p>
+        </div>
+
+        <div class="auth-visual-foot">
+            <span>◈</span> ידע הוא כוח
+        </div>
+    </div>
+
+    <div class="auth-form-panel">
+        <div class="auth-mobile-brand">
+            <span class="brand-mark">⚖</span>
+            <strong>חוק וזכות</strong>
+        </div>
+
+        <div class="auth-form-wrap">
+            <span class="eyebrow">נעים להכיר</span>
+            <h2>יצירת חשבון חדש</h2>
+            <p class="auth-subtitle">מלאו פרטים כדי להתחיל להשתמש במערכת.</p>
+
+            <label class="field-label" for="fullname">שם מלא</label>
+            <div class="input-wrap">
+                <span>♙</span>
+                <input id="fullname"
+                       @bind="fullName"
+                       placeholder="השם שלכם" />
+            </div>
+
+            <label class="field-label" for="register-email">
+                כתובת אימייל
+            </label>
+            <div class="input-wrap">
+                <span>✉</span>
+                <input id="register-email"
+                       type="email"
+                       @bind="email"
+                       placeholder="name@example.com" />
+            </div>
+
+            <label class="field-label" for="role">תפקיד</label>
+            <div class="input-wrap select-wrap">
+                <span>▤</span>
+                <select id="role" @bind="role">
+                    <option>תלמיד</option>
+                    <option>מורה</option>
+                </select>
+            </div>
+
+            <label class="field-label" for="register-password">
+                סיסמה
+            </label>
+            <div class="input-wrap">
+                <span>▣</span>
+                <input id="register-password"
+                       type="password"
+                       @bind="password"
+                       placeholder="בחרו סיסמה" />
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(message))
+            {
+                <div class="form-alert">@message</div>
+            }
+
+            <button class="btn btn-primary btn-full auth-submit"
+                    @onclick="HandleRegister">
+                יצירת חשבון <span>←</span>
+            </button>
+
+            <p class="auth-register">
+                כבר יש לכם חשבון?
+                <a href="/login">התחברות</a>
+            </p>
+
+            <p class="auth-prototype-note">
+                אב-טיפוס לימודי: הרשמה זו מדגימה ממשק בלבד ואינה שומרת משתמשים.
+            </p>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string fullName = "";
+    private string email = "";
+    private string role = "תלמיד";
+    private string password = "";
+    private string message = "";
+
+    private void HandleRegister()
+    {
+        if (string.IsNullOrWhiteSpace(fullName) ||
+            string.IsNullOrWhiteSpace(email) ||
+            string.IsNullOrWhiteSpace(password))
+        {
+            message = "יש למלא את כל השדות.";
+            return;
+        }
+
+        Navigation.NavigateTo("/");
+    }
+}

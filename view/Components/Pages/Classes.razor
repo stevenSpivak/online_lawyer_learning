@@ -1,0 +1,182 @@
+﻿@page "/classes"
+
+<PageTitle>כיתות לימוד | חוק וזכות</PageTitle>
+
+<div class="page-heading">
+    <div>
+        <span class="eyebrow">לומדים ביחד</span>
+        <h1>כיתות הלימוד שלי</h1>
+        <p>מצאו את הכיתה שלכם, עברו על השיעורים והמשיכו ללמוד עם הקבוצה.</p>
+    </div>
+    <div class="heading-icon">♧</div>
+</div>
+
+<section class="join-class-banner">
+    <div class="join-class-icon">＋</div>
+
+    <div class="join-class-copy">
+        <h2>יש לכם קוד הצטרפות?</h2>
+        <p>הקלידו את הקוד שקיבלתם מהמורה כדי להצטרף לכיתה.</p>
+    </div>
+
+    <div class="join-class-form">
+        <input @bind="joinCode"
+               placeholder="לדוגמה: 7F3B"
+               aria-label="קוד הצטרפות" />
+
+        <button class="btn btn-white" @onclick="JoinClass">
+            הצטרפות לכיתה
+        </button>
+    </div>
+</section>
+
+@if (!string.IsNullOrWhiteSpace(joinMessage))
+{
+    <div class="inline-feedback @(joinSuccess ? "feedback-success" : "feedback-error")">
+        @joinMessage
+    </div>
+}
+
+<div class="section-heading section-heading-row class-heading">
+    <div>
+        <span class="eyebrow">הקבוצות שלך</span>
+        <h2>הכיתות הפעילות</h2>
+    </div>
+    <span class="pill pill-green">2 כיתות</span>
+</div>
+
+<section class="class-grid">
+    <article class="class-card panel">
+        <div class="class-card-top class-art-blue">
+            <div class="class-symbol">⚖</div>
+            <span class="pill pill-white">פעילה</span>
+        </div>
+
+        <div class="class-card-content">
+            <span class="eyebrow">כיתה י׳ · אזרחות</span>
+            <h3>זכויות אדם ואזרח</h3>
+            <p>מורה: מיכל לוי</p>
+
+            <div class="class-meta">
+                <span>♧ 28 תלמידים</span>
+                <span>▤ 6 שיעורים</span>
+            </div>
+
+            <div class="class-progress">
+                <div class="progress-track">
+                    <span style="width:65%"></span>
+                </div>
+                <small>התקדמות: 65%</small>
+            </div>
+
+            <a class="btn btn-primary btn-full" href="/quiz">
+                כניסה לכיתה <span>←</span>
+            </a>
+        </div>
+    </article>
+
+    <article class="class-card panel">
+        <div class="class-card-top class-art-teal">
+            <div class="class-symbol">▤</div>
+            <span class="pill pill-white">פעילה</span>
+        </div>
+
+        <div class="class-card-content">
+            <span class="eyebrow">כיתה י׳ · מבוא למשפט</span>
+            <h3>חוקי יסוד בישראל</h3>
+            <p>מורה: דניאל שפירא</p>
+
+            <div class="class-meta">
+                <span>♧ 24 תלמידים</span>
+                <span>▤ 4 שיעורים</span>
+            </div>
+
+            <div class="class-progress">
+                <div class="progress-track">
+                    <span style="width:30%"></span>
+                </div>
+                <small>התקדמות: 30%</small>
+            </div>
+
+            <a class="btn btn-primary btn-full" href="/laws">
+                כניסה לכיתה <span>←</span>
+            </a>
+        </div>
+    </article>
+
+    <article class="class-card class-add-card">
+        <div class="add-card-icon">＋</div>
+        <h3>כיתה חדשה?</h3>
+        <p>קבלו קוד הצטרפות מהמורה שלכם והזינו אותו למעלה.</p>
+        <a class="text-link" href="/consultation">צריכים עזרה? ←</a>
+    </article>
+</section>
+
+<section class="panel lessons-panel">
+    <div class="panel-heading">
+        <div>
+            <span class="eyebrow">תוכן הכיתה</span>
+            <h2>שיעורים אחרונים</h2>
+        </div>
+        <a class="text-link" href="/quiz">לתרגול הידע ←</a>
+    </div>
+
+    <div class="lesson-row">
+        <div class="lesson-icon lesson-done">✓</div>
+        <div class="lesson-copy">
+            <strong>שיעור 1: זכויות וחובות אזרח</strong>
+            <small>הושלם · 15.10.2026</small>
+        </div>
+        <span class="pill pill-green">הושלם</span>
+    </div>
+
+    <div class="lesson-row">
+        <div class="lesson-icon lesson-current">▤</div>
+        <div class="lesson-copy">
+            <strong>שיעור 2: חוקי יסוד</strong>
+            <small>עודכן · 18.10.2026</small>
+        </div>
+        <span class="pill pill-blue">בתהליך</span>
+    </div>
+
+    <div class="lesson-row">
+        <div class="lesson-icon lesson-upcoming">◷</div>
+        <div class="lesson-copy">
+            <strong>שיעור 3: זכויות נוער</strong>
+            <small>השיעור הבא במסלול</small>
+        </div>
+        <span class="pill pill-gray">בקרוב</span>
+    </div>
+</section>
+
+@code {
+    private string joinCode = "";
+    private string joinMessage = "";
+    private bool joinSuccess;
+
+    private void JoinClass()
+    {
+        if (string.IsNullOrWhiteSpace(joinCode))
+        {
+            joinSuccess = false;
+            joinMessage = "יש להזין קוד הצטרפות.";
+            return;
+        }
+
+        if (joinCode.Trim().Equals("7F3B",
+                StringComparison.OrdinalIgnoreCase) ||
+            joinCode.Trim().Equals("9A2C",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            joinSuccess = true;
+            joinMessage =
+                "הקוד זוהה באב-הטיפוס. הצטרפות אמיתית תדרוש חיבור למסד נתונים.";
+        }
+        else
+        {
+            joinSuccess = false;
+            joinMessage =
+                "הקוד לא נמצא בדוגמאות. בדקו עם המורה ונסו שוב.";
+        }
+    }
+}

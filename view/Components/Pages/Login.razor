@@ -1,0 +1,121 @@
+﻿@page "/login"
+@layout BlankLayout
+@inject NavigationManager Navigation
+
+<PageTitle>התחברות | חוק וזכות</PageTitle>
+
+<div class="auth-page">
+    <div class="auth-visual">
+        <a class="brand brand-auth" href="/">
+            <span class="brand-mark">⚖</span>
+            <span class="brand-copy">
+                <strong>חוק וזכות</strong>
+                <small>לומדים. שואלים. מקבלים מענה.</small>
+            </span>
+        </a>
+
+        <div class="auth-illustration">
+            <div class="auth-glow"></div>
+            <span class="auth-scales">⚖</span>
+            <div class="auth-book auth-book-one"></div>
+            <div class="auth-book auth-book-two"></div>
+            <span class="auth-star">✦</span>
+        </div>
+
+        <div class="auth-visual-copy">
+            <h1>הידע שלך.<br /><span>הכוח שלך.</span></h1>
+            <p>לומדים על זכויות, מבינים את החוק ומקבלים הכוונה ברורה.</p>
+        </div>
+
+        <div class="auth-visual-foot">
+            <span>◈</span> למידה נגישה לכולם
+        </div>
+    </div>
+
+    <div class="auth-form-panel">
+        <div class="auth-mobile-brand">
+            <span class="brand-mark">⚖</span>
+            <strong>חוק וזכות</strong>
+        </div>
+
+        <div class="auth-form-wrap">
+            <span class="eyebrow">ברוכים השבים</span>
+            <h2>כניסה למערכת</h2>
+            <p class="auth-subtitle">התחברו לחשבון כדי להמשיך ללמוד.</p>
+
+            <label class="field-label" for="email">
+                שם משתמש או אימייל
+            </label>
+
+            <div class="input-wrap">
+                <span>♙</span>
+                <input id="email"
+                       type="text"
+                       @bind="email"
+                       placeholder="name@example.com"
+                       autocomplete="username" />
+            </div>
+
+            <label class="field-label" for="password">סיסמה</label>
+
+            <div class="input-wrap">
+                <span>▣</span>
+                <input id="password"
+                       type="password"
+                       @bind="password"
+                       placeholder="הזינו את הסיסמה"
+                       autocomplete="current-password" />
+            </div>
+
+            <div class="auth-options">
+                <label class="check-label">
+                    <input type="checkbox" @bind="rememberMe" />
+                    זכור אותי
+                </label>
+                <a href="/consultation">שכחתם סיסמה?</a>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(errorMessage))
+            {
+                <div class="form-alert">@errorMessage</div>
+            }
+
+            <button class="btn btn-primary btn-full auth-submit"
+                    @onclick="HandleLogin">
+                התחברות <span>←</span>
+            </button>
+
+            <div class="auth-divider">
+                <span>או</span>
+            </div>
+
+            <p class="auth-register">
+                עדיין אין לכם חשבון?
+                <a href="/register">צרו חשבון חדש</a>
+            </p>
+
+            <p class="auth-prototype-note">
+                אב-טיפוס לימודי: ההתחברות אינה מאמתת פרטים מול שרת.
+            </p>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string email = "";
+    private string password = "";
+    private bool rememberMe;
+    private string errorMessage = "";
+
+    private void HandleLogin()
+    {
+        if (string.IsNullOrWhiteSpace(email) ||
+            string.IsNullOrWhiteSpace(password))
+        {
+            errorMessage = "יש למלא שם משתמש וסיסמה.";
+            return;
+        }
+
+        Navigation.NavigateTo("/");
+    }
+}

@@ -1,0 +1,278 @@
+﻿@page "/laws"
+@inject LawApiClient LawApi
+
+<PageTitle>חיפוש חוקים | חוק וזכות</PageTitle>
+
+<div class="page-heading">
+    <div>
+        <span class="eyebrow">מאגר המידע</span>
+        <h1>חיפוש חוקים וזכויות</h1>
+        <p>מצאו מידע על זכויות וחוקים לפי נושא או מילת חיפוש.</p>
+    </div>
+    <div class="heading-icon">⚖</div>
+</div>
+
+<section class="search-hero panel">
+    <div class="search-hero-copy">
+        <h2>מה תרצו לדעת היום?</h2>
+        <p>חפשו נושא, זכות או שם של חוק.</p>
+    </div>
+
+    <div class="search-input-large">
+        <span>⌕</span>
+
+        <input @bind="searchText"
+               @bind:event="oninput"
+               placeholder="לדוגמה: זכויות תלמיד, פרטיות..."
+               aria-label="חיפוש חוקים" />
+
+        <button class="btn btn-primary" @onclick="RunSearch">
+            חיפוש
+        </button>
+    </div>
+
+    @if (categories.Count > 0)
+    {
+        <div class="popular-tags">
+            <span>קטגוריות במאגר:</span>
+
+            @foreach (var category in categories.Take(4))
+            {
+                <button class="tag-button"
+                        @onclick="() => selectedCategoryId = category.Id">
+                    @category.Name
+                </button>
+            }
+        </div>
+    }
+</section>
+
+<div class="law-results-layout">
+    <aside class="panel filter-panel">
+        <div class="filter-title">
+            <h3>סינון תוצאות</h3>
+
+            <button class="clear-filter" @onclick="ClearFilters">
+                ניקוי
+            </button>
+        </div>
+
+        <label class="field-label" for="category-filter">
+            קטגוריה
+        </label>
+
+        <select id="category-filter"
+                class="select-control"
+                @bind="selectedCategoryId">
+            <option value="0">כל הקטגוריות</option>
+
+            @foreach (var category in categories)
+            {
+                <option value="@category.Id">
+                    @category.Name
+                </option>
+            }
+        </select>
+
+        <div class="filter-divider"></div>
+
+        <h4>מידע</h4>
+
+        <div class="filter-note">
+            <span>ⓘ</span>
+            <p>
+                המידע נשלף מטבלאות Laws ו-Categories במסד הנתונים שלך.
+                יש לוודא שהתוכן המשפטי עדכני.
+            </p>
+        </div>
+    </aside>
+
+    <section class="results-area">
+        <div class="results-header">
+            <div>
+                <h2>תוצאות החיפוש</h2>
+                <p>
+                    נמצאו <strong>@FilteredLaws.Count()</strong> חוקים
+                </p>
+            </div>
+
+            <span class="results-sort">
+                מיון: <strong>לפי כותרת</strong>
+            </span>
+        </div>
+
+        @if (isLoading)
+        {
+            <div class="panel empty-state">
+                <p>טוען חוקים ממסד הנתונים...</p>
+            </div>
+        }
+        else if (!string.IsNullOrWhiteSpace(loadError))
+        {
+            <div class="panel empty-state">
+                <div class="empty-icon">!</div>
+                <h3>לא ניתן לטעון את המאגר</h3>
+                <p>@loadError</p>
+
+                <button class="btn btn-primary" @onclick="LoadData">
+                    נסו שוב
+                </button>
+            </div>
+        }
+        else if (!FilteredLaws.Any())
+        {
+            <div class="panel empty-state">
+                <div class="empty-icon">⌕</div>
+                <h3>לא נמצאו תוצאות</h3>
+                <p>נסו מילת חיפוש אחרת או הוסיפו רשומות לטבלת Laws.</p>
+
+                <button class="btn btn-secondary" @onclick="ClearFilters">
+                    הצגת כל החוקים
+                </button>
+            </div>
+        }
+        else
+        {
+            <div class="law-card-list">
+                @foreach (var law in FilteredLaws)
+                {
+                    <article class="law-result-card panel">
+                        <div class="law-result-icon">
+                            @GetIcon(law.CategoryName)
+                        </div>
+
+                        <div class="law-result-main">
+                            <div class="result-tags">
+                                <span class="pill pill-blue">
+                                    @law.CategoryName
+                                </span>
+
+                                <span class="muted-small">
+                                    נוסף:
+                                    @(law.CreatedAt?.ToString("dd.MM.yyyy")
+                                      ?? "לא ידוע")
+                                </span>
+                            </div>
+
+                            <h3>
+                                <a href="@($"/laws/{law.Id}")">
+                                    @law.Title
+                                </a>
+                            </h3>
+
+                            <p>@Preview(law.Content)</p>
+
+                            <a class="text-link"
+                               href="@($"/laws/{law.Id}")">
+                                לקריאת פרטים <span>←</span>
+                            </a>
+                        </div>
+
+                        <a class="result-arrow"
+                           href="@($"/laws/{law.Id}")"
+                           aria-label="לפרטי החוק">
+                            ←
+                        </a>
+                    </article>
+                }
+            </div>
+        }
+    </section>
+</div>
+
+@code {
+    private List<Law> laws = new();
+    private List<LawCategory> categories = new();
+
+    private string searchText = "";
+    private int selectedCategoryId;
+
+    private bool isLoading = true;
+    private string loadError = "";
+
+    private IEnumerable<Law> FilteredLaws =>
+        laws.Where(law =>
+            (selectedCategoryId == 0 ||
+             law.CategoryId == selectedCategoryId)
+            &&
+            (string.IsNullOrWhiteSpace(searchText) ||
+             $"{law.Title} {law.Content} {law.CategoryName}"
+                .Contains(
+                    searchText.Trim(),
+                    StringComparison.OrdinalIgnoreCase)));
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        isLoading = true;
+        loadError = "";
+
+        try
+        {
+            laws = await LawApi.GetLawsAsync();
+            categories = await LawApi.GetCategoriesAsync();
+        }
+        catch (HttpRequestException)
+        {
+            loadError =
+                "ודאו שפרויקט OLL.api פועל ושהחיבור למסד הנתונים תקין.";
+        }
+        catch (Exception)
+        {
+            loadError = "אירעה שגיאה בעת טעינת הנתונים.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void RunSearch()
+    {
+        // Filtering updates automatically as the user types.
+    }
+
+    private void ClearFilters()
+    {
+        searchText = "";
+        selectedCategoryId = 0;
+    }
+
+    private static string Preview(string? content)
+    {
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            return "אין תוכן זמין לחוק זה.";
+        }
+
+        string text = content.Trim();
+
+        return text.Length <= 180
+            ? text
+            : text[..180] + "…";
+    }
+
+    private static string GetIcon(string? category) =>
+        (category ?? "").ToLowerInvariant() switch
+        {
+            var c when c.Contains("student")
+                     || c.Contains("נוער")
+                     || c.Contains("תלמיד") => "🎓",
+
+            var c when c.Contains("traffic")
+                     || c.Contains("road")
+                     || c.Contains("תעבורה") => "🚦",
+
+            var c when c.Contains("privacy")
+                     || c.Contains("פרטיות") => "🔒",
+
+            var c when c.Contains("tort")
+                     || c.Contains("נזיקין") => "🛡",
+
+            _ => "⚖"
+        };
+}

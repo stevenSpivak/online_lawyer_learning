@@ -1,7 +1,196 @@
 ﻿@page "/"
+@inject LawApiClient LawApi
 
-<PageTitle>Home</PageTitle>
+<PageTitle>דף הבית | חוק וזכות</PageTitle>
 
-<h1>Hello, world!</h1>
+<section class="welcome-banner">
+    <div class="welcome-copy">
+        <span class="eyebrow">
+            <span class="eyebrow-dot"></span>
+            מרחב הלמידה שלך
+        </span>
 
-Welcome to your new app.
+        <h1>
+            הזכויות שלך.<br />
+            <span>הידע שלך.</span>
+        </h1>
+
+        <p>
+            ברוכים הבאים ל״חוק וזכות״ — המקום ללמוד על חוקים,
+            להבין זכויות ולקבל הכוונה בשפה ברורה.
+        </p>
+
+        <div class="welcome-actions">
+            <a class="btn btn-white" href="/laws">
+                לגלות את מאגר החוקים <span>←</span>
+            </a>
+
+            <a class="text-link text-link-light" href="/consultation">
+                יש לי שאלה משפטית
+            </a>
+        </div>
+    </div>
+
+    <div class="welcome-art" aria-hidden="true">
+        <div class="art-circle art-circle-one"></div>
+        <div class="art-circle art-circle-two"></div>
+        <div class="justice-emoji">⚖</div>
+        <div class="art-book book-back"></div>
+        <div class="art-book book-front"></div>
+        <div class="art-spark spark-one">✦</div>
+        <div class="art-spark spark-two">✧</div>
+    </div>
+</section>
+
+<div class="section-heading section-heading-row">
+    <div>
+        <span class="eyebrow">מתחילים מכאן</span>
+        <h2>מה תרצו לעשות היום?</h2>
+    </div>
+
+    <span class="muted-small">כל הכלים החשובים במקום אחד</span>
+</div>
+
+<section class="quick-grid">
+    <a class="quick-card" href="/laws">
+        <div class="quick-icon icon-blue">⚖</div>
+        <div>
+            <h3>ללמוד חוקים וזכויות</h3>
+            <p>לגלות מידע לפי נושא, בשפה פשוטה.</p>
+            <span class="card-link">למאגר החוקים ←</span>
+        </div>
+    </a>
+
+    <a class="quick-card" href="/consultation">
+        <div class="quick-icon icon-teal">☏</div>
+        <div>
+            <h3>לשאול שאלה</h3>
+            <p>לתאר מקרה ולקבל הכוונה ראשונית.</p>
+            <span class="card-link">לשאלות והתייעצות ←</span>
+        </div>
+    </a>
+
+    <a class="quick-card" href="/classes">
+        <div class="quick-icon icon-violet">♧</div>
+        <div>
+            <h3>להצטרף לכיתה</h3>
+            <p>ללמוד עם המורה והקבוצה שלך.</p>
+            <span class="card-link">לכיתות הלימוד ←</span>
+        </div>
+    </a>
+
+    <a class="quick-card" href="/quiz">
+        <div class="quick-icon icon-gold">✓</div>
+        <div>
+            <h3>לבדוק את הידע</h3>
+            <p>תרגול קצר על זכויות וחוקים.</p>
+            <span class="card-link">לשאלון הידע ←</span>
+        </div>
+    </a>
+</section>
+
+<div class="content-grid dashboard-grid">
+    <section class="panel law-panel">
+        <div class="panel-heading">
+            <div>
+                <span class="eyebrow">כדאי להכיר</span>
+                <h2>חוקים ונושאים מרכזיים</h2>
+            </div>
+            <a class="text-link" href="/laws">לכל החוקים ←</a>
+        </div>
+
+        @if (laws == null)
+        {
+            <p>טוען חוקים...</p>
+        }
+        else if (laws.Count == 0)
+        {
+            <p>לא נמצאו חוקים במאגר.</p>
+        }
+        else
+        {
+            @foreach (var law in laws.Take(4))
+            {
+                <a class="law-row" href="@($"/laws/{law.Id}")">
+                    <div class="law-row-icon">⚖</div>
+
+                    <div class="law-row-copy">
+                        <strong>@law.Title</strong>
+                        <small>@law.Content</small>
+                    </div>
+
+                    <span class="row-arrow">←</span>
+                </a>
+            }
+        }
+    </section>
+
+    <section class="panel progress-panel">
+        <div class="panel-heading">
+            <div>
+                <span class="eyebrow">ההתקדמות שלי</span>
+                <h2>ממשיכים ללמוד</h2>
+            </div>
+            <span class="progress-emblem">✦</span>
+        </div>
+
+        <div class="progress-highlight">
+            <div>
+                <span class="muted-small">מסלול הלמידה שלך</span>
+                <h3>מכירים את הזכויות</h3>
+                <p>צעדים קטנים, ידע חשוב.</p>
+            </div>
+
+            <div class="progress-ring">
+                <span>2/5</span>
+            </div>
+        </div>
+
+        <div class="progress-track">
+            <span style="width:40%"></span>
+        </div>
+
+        <div class="progress-meta">
+            <span>הושלמו 2 מתוך 5 נושאים</span>
+            <strong>40%</strong>
+        </div>
+
+        <a class="btn btn-primary btn-full" href="/quiz">
+            להמשיך ללמוד <span>←</span>
+        </a>
+
+        <div class="tip-note">
+            <span>✦</span>
+            <p>
+                <strong>טיפ קטן:</strong>
+                כשמשהו לא ברור, חפשו את הנושא במאגר או שאלו את המורה.
+            </p>
+        </div>
+    </section>
+</div>
+
+<section class="bottom-cta">
+    <div class="cta-symbol">?</div>
+    <div>
+        <h2>קרה משהו ואתם לא בטוחים מה הזכויות שלכם?</h2>
+        <p>תארו את המקרה וקבלו הכוונה ראשונית, עם אפשרות לפנות למורה.</p>
+    </div>
+    <a class="btn btn-primary" href="/consultation">
+        לשאלות והתייעצות ←
+    </a>
+</section>
+@code {
+    private List<Law> laws = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            laws = await LawApi.GetLawsAsync();
+        }
+        catch
+        {
+            laws = new List<Law>();
+        }
+    }
+}
