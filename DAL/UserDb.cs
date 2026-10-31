@@ -1,4 +1,5 @@
-﻿using System.Data.Common;
+﻿
+using System.Data.Common;
 using Model;
 using MySql.Data.MySqlClient;
 
@@ -26,12 +27,17 @@ namespace DAL
                 FROM Roles
                 WHERE RoleName = @RoleName;";
 
+            // Hash the password before storing it in the database
+            string passwordHash = BCrypt.Net.BCrypt.HashPassword(user.PasswordHash);
+
             using var connection = new MySqlConnection(connectionString);
             await connection.OpenAsync();
+
             using var command = new MySqlCommand(sql, connection);
+
             command.Parameters.AddWithValue("@Username", user.Username);
             command.Parameters.AddWithValue("@Email", user.Email);
-            command.Parameters.AddWithValue("@PasswordHash", user.PasswordHash);
+            command.Parameters.AddWithValue("@PasswordHash", passwordHash);
             command.Parameters.AddWithValue("@IsActive", user.IsActive);
             command.Parameters.AddWithValue("@RoleName", roleName);
 
@@ -41,6 +47,7 @@ namespace DAL
                 throw new InvalidOperationException($"Role '{roleName}' not found.");
 
             user.Id = (int)command.LastInsertedId;
+
             return user.Id;
         }
 
@@ -50,6 +57,7 @@ namespace DAL
 
             using var connection = new MySqlConnection(connectionString);
             await connection.OpenAsync();
+
             using var command = new MySqlCommand(sql, connection);
             command.Parameters.AddWithValue("@Username", username);
 
@@ -62,11 +70,13 @@ namespace DAL
 
             using var connection = new MySqlConnection(connectionString);
             await connection.OpenAsync();
+
             using var command = new MySqlCommand(sql, connection);
             command.Parameters.AddWithValue("@Email", email);
 
             return Convert.ToInt64(await command.ExecuteScalarAsync()) == 1;
         }
+
         public async Task<bool> EmailExistsForAnotherUserAsync(int userId, string email)
         {
             string sql = @"
@@ -87,22 +97,28 @@ namespace DAL
             return Convert.ToInt64(await command.ExecuteScalarAsync()) == 1;
         }
 
-        public async Task<User?> CheckLoginAsync(string username, string passwordHash)
+        public async Task<User?> CheckLoginAsync(string username, string password)
         {
             string sql = SelectUserSql + " WHERE u.Username = @Username AND u.IsActive = TRUE;";
 
             using var connection = new MySqlConnection(connectionString);
             await connection.OpenAsync();
+
             using var command = new MySqlCommand(sql, connection);
             command.Parameters.AddWithValue("@Username", username);
 
             using var reader = await command.ExecuteReaderAsync();
+
             if (!await reader.ReadAsync())
                 return null;
 
             User user = ReadUser(reader);
 
-            return user.PasswordHash == passwordHash ? user : null;
+            // Compare the entered password with the stored BCrypt hash
+            bool passwordCorrect =
+                BCrypt.Net.BCrypt.Verify(password, user.PasswordHash);
+
+            return passwordCorrect ? user : null;
         }
 
         public async Task<User?> GetUserByIdAsync(int userId)
@@ -111,10 +127,12 @@ namespace DAL
 
             using var connection = new MySqlConnection(connectionString);
             await connection.OpenAsync();
+
             using var command = new MySqlCommand(sql, connection);
             command.Parameters.AddWithValue("@UserID", userId);
 
             using var reader = await command.ExecuteReaderAsync();
+
             return await reader.ReadAsync() ? ReadUser(reader) : null;
         }
 
@@ -124,10 +142,13 @@ namespace DAL
 
             using var connection = new MySqlConnection(connectionString);
             await connection.OpenAsync();
+
             using var command = new MySqlCommand(sql, connection);
 
             var users = new List<User>();
+
             using var reader = await command.ExecuteReaderAsync();
+
             while (await reader.ReadAsync())
                 users.Add(ReadUser(reader));
 
@@ -145,12 +166,18 @@ namespace DAL
 
             using var connection = new MySqlConnection(connectionString);
             await connection.OpenAsync();
+
             using var command = new MySqlCommand(sql, connection);
 
             var counts = new Dictionary<string, int>();
+
             using var reader = await command.ExecuteReaderAsync();
+
             while (await reader.ReadAsync())
-                counts[reader.GetString(reader.GetOrdinal("RoleName"))] = Convert.ToInt32(reader["UserCount"]);
+            {
+                counts[reader.GetString(reader.GetOrdinal("RoleName"))] =
+                    Convert.ToInt32(reader["UserCount"]);
+            }
 
             return counts;
         }
@@ -165,6 +192,7 @@ namespace DAL
 
             using var connection = new MySqlConnection(connectionString);
             await connection.OpenAsync();
+
             using var command = new MySqlCommand(sql, connection);
             command.Parameters.AddWithValue("@RoleName", roleName);
             command.Parameters.AddWithValue("@UserID", userId);
@@ -172,14 +200,18 @@ namespace DAL
             return await command.ExecuteNonQueryAsync() > 0;
         }
 
-        public async Task<bool> UpdatePasswordAsync(int userId, string newPasswordHash)
+        public async Task<bool> UpdatePasswordAsync(int userId, string newPassword)
         {
             string sql = "UPDATE Users SET PasswordHash = @PasswordHash WHERE UserID = @UserID;";
 
+            // Hash the new password before storing it
+            string passwordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+
             using var connection = new MySqlConnection(connectionString);
             await connection.OpenAsync();
+
             using var command = new MySqlCommand(sql, connection);
-            command.Parameters.AddWithValue("@PasswordHash", newPasswordHash);
+            command.Parameters.AddWithValue("@PasswordHash", passwordHash);
             command.Parameters.AddWithValue("@UserID", userId);
 
             return await command.ExecuteNonQueryAsync() > 0;
@@ -191,6 +223,7 @@ namespace DAL
 
             using var connection = new MySqlConnection(connectionString);
             await connection.OpenAsync();
+
             using var command = new MySqlCommand(sql, connection);
             command.Parameters.AddWithValue("@Email", newEmail);
             command.Parameters.AddWithValue("@UserID", userId);
@@ -204,6 +237,7 @@ namespace DAL
 
             using var connection = new MySqlConnection(connectionString);
             await connection.OpenAsync();
+
             using var command = new MySqlCommand(sql, connection);
             command.Parameters.AddWithValue("@IsActive", isActive);
             command.Parameters.AddWithValue("@UserID", userId);
@@ -217,6 +251,7 @@ namespace DAL
 
             using var connection = new MySqlConnection(connectionString);
             await connection.OpenAsync();
+
             using var command = new MySqlCommand(sql, connection);
             command.Parameters.AddWithValue("@UserID", userId);
 
@@ -235,7 +270,9 @@ namespace DAL
                 reader.GetInt32(reader.GetOrdinal("RoleID")),
                 reader.GetString(reader.GetOrdinal("RoleName")),
                 reader.GetBoolean(reader.GetOrdinal("IsActive")),
-                reader.IsDBNull(createdAtIndex) ? DateTime.MinValue : reader.GetDateTime(createdAtIndex));
+                reader.IsDBNull(createdAtIndex)
+                    ? DateTime.MinValue
+                    : reader.GetDateTime(createdAtIndex));
         }
     }
 }

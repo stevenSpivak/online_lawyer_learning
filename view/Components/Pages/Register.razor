@@ -1,7 +1,12 @@
 ﻿@page "/register"
 @layout BlankLayout
-@inject NavigationManager Navigation
 
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@using System.Net.Mail
+@using System.Net.Http.Json
+@using Model
+@inject HttpClient Http
+@inject NavigationManager Navigation
 <PageTitle>הרשמה | חוק וזכות</PageTitle>
 
 <div class="auth-page">
@@ -40,87 +45,276 @@
 
         <div class="auth-form-wrap">
             <span class="eyebrow">נעים להכיר</span>
+
             <h2>יצירת חשבון חדש</h2>
-            <p class="auth-subtitle">מלאו פרטים כדי להתחיל להשתמש במערכת.</p>
 
-            <label class="field-label" for="fullname">שם מלא</label>
-            <div class="input-wrap">
-                <span>♙</span>
-                <input id="fullname"
-                       @bind="fullName"
-                       placeholder="השם שלכם" />
-            </div>
+            <p class="auth-subtitle">
+                מלאו פרטים כדי להתחיל להשתמש במערכת.
+            </p>
 
-            <label class="field-label" for="register-email">
-                כתובת אימייל
+            <!-- CHANGED: שדה שם המשתמש מחובר למשתנה username -->
+            <Field Id="reg-username"
+                   Label="שם משתמש"
+                   Placeholder="בחרו שם משתמש"
+                   @bind-Value="username" />
+
+            <!-- CHANGED: שדה האימייל מחובר למשתנה email -->
+            <Field Id="reg-email"
+                   Label="כתובת אימייל"
+                   Type="email"
+                   Placeholder="name@example.com"
+                   @bind-Value="email" />
+
+            <label class="field-label" for="role">
+                תפקיד
             </label>
-            <div class="input-wrap">
-                <span>✉</span>
-                <input id="register-email"
-                       type="email"
-                       @bind="email"
-                       placeholder="name@example.com" />
-            </div>
 
-            <label class="field-label" for="role">תפקיד</label>
             <div class="input-wrap select-wrap">
                 <span>▤</span>
+
+                <!-- CHANGED: התפקיד נשמר במשתנה role -->
                 <select id="role" @bind="role">
-                    <option>תלמיד</option>
-                    <option>מורה</option>
+                    <option value="תלמיד">תלמיד</option>
+                    <option value="מורה">מורה</option>
                 </select>
             </div>
 
-            <label class="field-label" for="register-password">
-                סיסמה
-            </label>
-            <div class="input-wrap">
-                <span>▣</span>
-                <input id="register-password"
-                       type="password"
-                       @bind="password"
-                       placeholder="בחרו סיסמה" />
-            </div>
+            <!-- CHANGED: שדה הסיסמה -->
+            <Field Id="reg-password"
+                   Label="סיסמה"
+                   Type="password"
+                   Placeholder="בחרו סיסמה"
+                   @bind-Value="password" />
 
-            @if (!string.IsNullOrWhiteSpace(message))
+            <!-- CHANGED: הוספנו אימות סיסמה -->
+            <Field Id="reg-confirm-password"
+                   Label="אימות סיסמה"
+                   Type="password"
+                   Placeholder="הקלידו את הסיסמה שוב"
+                   @bind-Value="confirmPassword" />
+
+            @if (!string.IsNullOrWhiteSpace(errorMessage))
             {
-                <div class="form-alert">@message</div>
+                <!-- CHANGED: הצגת הודעת שגיאה -->
+                <div class="form-alert" role="alert">
+                    @errorMessage
+                </div>
             }
 
+            @if (isRegistered)
+            {
+                <!-- CHANGED: הודעת הצלחה וספירה לאחור -->
+                <div class="form-alert success" role="status">
+                    <strong>ההרשמה הצליחה!</strong>
+                    עוברים לדף הכניסה בעוד @secondsLeft שניות.
+                </div>
+            }
+
+            <!-- CHANGED:
+                 הכפתור מפעיל את RegisterAsync.
+                 בזמן שליחה הוא מושבת כדי למנוע הרשמה כפולה.
+            -->
             <button class="btn btn-primary btn-full auth-submit"
-                    @onclick="HandleRegister">
-                יצירת חשבון <span>←</span>
+                    type="button"
+                    disabled="@(isBusy || isRegistered)"
+                    @onclick="RegisterAsync">
+
+                @(isBusy ? "בודקים..." : "יצירת חשבון")
+
+                <span>←</span>
             </button>
 
             <p class="auth-register">
                 כבר יש לכם חשבון?
                 <a href="/login">התחברות</a>
             </p>
-
-            <p class="auth-prototype-note">
-                אב-טיפוס לימודי: הרשמה זו מדגימה ממשק בלבד ואינה שומרת משתמשים.
-            </p>
         </div>
     </div>
 </div>
 
 @code {
-    private string fullName = "";
+
+    // CHANGED:
+    // המשתנים שמחזיקים את מה שהמשתמש הקליד.
+    private string username = "";
     private string email = "";
     private string role = "תלמיד";
     private string password = "";
-    private string message = "";
+    private string confirmPassword = "";
 
-    private void HandleRegister()
+    // CHANGED:
+    // משתנים לשליטה במצב ההרשמה.
+    private string? errorMessage;
+    private bool isBusy;
+    private bool isRegistered;
+    private int secondsLeft = 5;
+
+
+    // CHANGED:
+    // כל לוגיקת ההרשמה נמצאת כאן.
+    private async Task RegisterAsync()
     {
-        if (string.IsNullOrWhiteSpace(fullName) ||
+        errorMessage = null;
+
+
+        // =====================================================
+        // שלב 0 - בדיקות מקומיות
+        // =====================================================
+
+        // CHANGED:
+        // בודקים שכל השדות מולאו לפני שפונים ל-API.
+        if (string.IsNullOrWhiteSpace(username) ||
             string.IsNullOrWhiteSpace(email) ||
-            string.IsNullOrWhiteSpace(password))
+            string.IsNullOrWhiteSpace(password) ||
+            string.IsNullOrWhiteSpace(confirmPassword))
         {
-            message = "יש למלא את כל השדות.";
+            errorMessage = "יש למלא את כל השדות.";
             return;
         }
 
-        Navigation.NavigateTo("/");
+
+        // CHANGED:
+        // בדיקת תקינות האימייל.
+        if (!MailAddress.TryCreate(email.Trim(), out _))
+        {
+            errorMessage = "כתובת האימייל לא תקינה.";
+            return;
+        }
+
+
+        // CHANGED:
+        // בדיקה שהסיסמה ואימות הסיסמה זהים.
+        if (password != confirmPassword)
+        {
+            errorMessage = "הסיסמה ואימות הסיסמה לא זהים.";
+            return;
+        }
+
+
+        isBusy = true;
+
+
+        try
+        {
+            // =================================================
+            // שלב 1 - בדיקות מול ה-API
+            // =================================================
+
+            // CHANGED:
+            // בודקים האם שם המשתמש כבר קיים.
+            bool usernameExists =
+                await Http.GetFromJsonAsync<bool>(
+                    $"api/users/exists/{Uri.EscapeDataString(username.Trim())}");
+
+            if (usernameExists)
+            {
+                errorMessage =
+                    "שם המשתמש כבר תפוס. בחרו שם אחר.";
+
+                return;
+            }
+
+
+            // CHANGED:
+            // בודקים האם האימייל כבר קיים.
+            bool emailExists =
+                await Http.GetFromJsonAsync<bool>(
+                    $"api/users/email-exists/{Uri.EscapeDataString(email.Trim())}");
+
+            if (emailExists)
+            {
+                errorMessage =
+                    "האימייל הזה כבר רשום במערכת.";
+
+                return;
+            }
+
+
+            // =================================================
+            // שלב 2 - יצירת המשתמש ושליחתו ל-API
+            // =================================================
+
+            // CHANGED:
+            // ממירים את התפקיד בעברית לשם התפקיד שה-DAL/API מצפים לו.
+            string roleName =
+                role == "מורה"
+                    ? "Teacher"
+                    : "Student";
+
+
+            // CHANGED:
+            // יוצרים User מתוך הנתונים שהמשתמש מילא.
+            User newUser =
+                new User(
+                    username.Trim(),
+                    email.Trim(),
+                    password);
+
+
+            // CHANGED:
+            // שולחים POST ל-API.
+            //
+            // אם נבחר "מורה":
+            // /api/users?roleName=Teacher
+            //
+            // אם נבחר "תלמיד":
+            // /api/users?roleName=Student
+            HttpResponseMessage response =
+                await Http.PostAsJsonAsync(
+                    $"api/users?roleName={Uri.EscapeDataString(roleName)}",
+                    newUser);
+
+
+            // CHANGED:
+            // אם ה-API החזיר שגיאה, מציגים הודעה.
+            if (!response.IsSuccessStatusCode)
+            {
+                errorMessage =
+                    "ההרשמה נכשלה. נסו שוב.";
+
+                return;
+            }
+        }
+        catch (HttpRequestException)
+        {
+            // CHANGED:
+            // אם ה-API לא זמין.
+            errorMessage =
+                "השרת לא זמין כרגע. נסו שוב בעוד רגע.";
+
+            return;
+        }
+        finally
+        {
+            // CHANGED:
+            // מחזירים את הכפתור למצב רגיל.
+            isBusy = false;
+        }
+
+
+        // =====================================================
+        // הצלחה
+        // =====================================================
+
+        // CHANGED:
+        // מציגים הודעת הצלחה.
+        isRegistered = true;
+
+
+        // CHANGED:
+        // ספירה לאחור של 5 שניות.
+        while (secondsLeft > 0)
+        {
+            StateHasChanged();
+
+            await Task.Delay(1000);
+
+            secondsLeft--;
+        }
+
+
+        // CHANGED:
+        // מעבר לדף ההתחברות.
+        Navigation.NavigateTo("/login");
     }
 }

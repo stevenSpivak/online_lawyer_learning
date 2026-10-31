@@ -32,7 +32,7 @@ GET {{OLL_api_HostAddress}}/api/users/1
 Accept: application/json
 
 
-### בדיקה האם שם המשתמש test.user קיים
+### בדיקה האם שם המשתמש test.user2 קיים
 # צפוי: true
 GET {{OLL_api_HostAddress}}/api/users/exists/test.user2
 
@@ -110,7 +110,7 @@ POST {{OLL_api_HostAddress}}/api/users/login
 Content-Type: application/json
 
 {
-  "username": "test.user",
+  "username": "test.user2",
   "passwordHash": "wrong"
 }
 
@@ -144,7 +144,7 @@ Content-Type: application/json
 
 # שינוי תפקיד של משתמש 3
 # צפוי: 204 No Content
-PUT {{OLL_api_HostAddress}}/api/users/3/role?roleName=Administrator
+PUT {{OLL_api_HostAddress}}/api/users/3/role?roleName=Teacher
 
 
 ### עדכון סיסמה של משתמש 3

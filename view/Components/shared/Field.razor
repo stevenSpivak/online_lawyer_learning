@@ -1,0 +1,40 @@
+﻿<div class="field-group">
+    <label class="field-label" for="@Id">
+        @Label
+    </label>
+
+    <input id="@Id"
+           type="@Type"
+           class="form-control"
+           value="@Value"
+           placeholder="@Placeholder"
+           @onchange="OnValueChanged" />
+</div>
+
+@code {
+    [Parameter]
+    public string Id { get; set; } = "";
+
+    [Parameter]
+    public string Label { get; set; } = "";
+
+    [Parameter]
+    public string? Value { get; set; }
+
+    // CHANGED: מאפשר @bind-Value
+    [Parameter]
+    public EventCallback<string?> ValueChanged { get; set; }
+
+    [Parameter]
+    public string Type { get; set; } = "text";
+
+    [Parameter]
+    public string? Placeholder { get; set; }
+
+    private Task OnValueChanged(ChangeEventArgs e)
+    {
+        // CHANGED: מחזיר את הערך החדש לדף Register.razor
+        return ValueChanged.InvokeAsync(
+            e.Value?.ToString());
+    }
+}

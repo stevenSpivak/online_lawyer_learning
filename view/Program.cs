@@ -1,14 +1,29 @@
 using view.Components;
+using view.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// קוראים את כתובת ה-API מתוך appsettings.json.
+string apiBaseUrl =
+    builder.Configuration["ApiBaseUrl"]
+    ?? throw new InvalidOperationException(
+        "ApiBaseUrl not found in appsettings.json.");
+
+
+// CHANGED:
+// HttpClient רגיל עבור Register.razor,
+// Login וכו'.
+builder.Services.AddScoped(sp => new HttpClient
+{
+    BaseAddress = new Uri(apiBaseUrl)
+});
+builder.Services.AddScoped<UserSession>();
+
+// CHANGED:
+// LawApiClient ממשיך לעבוד עבור מאגר החוקים.
 builder.Services.AddHttpClient<view.Services.LawApiClient>(
     client =>
     {
-        string apiBaseUrl =
-            builder.Configuration["ApiBaseUrl"]
-            ?? "http://localhost:5214/";
-
         client.BaseAddress = new Uri(apiBaseUrl);
     });
 

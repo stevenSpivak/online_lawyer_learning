@@ -1,7 +1,13 @@
-﻿@inherits LayoutComponentBase
+﻿
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject UserSession Session
+@inject NavigationManager Navigation
 
 <div class="app-shell">
+
     <aside class="sidebar">
+
         <a class="brand" href="/" aria-label="חוק וזכות - דף הבית">
             <span class="brand-mark">⚖</span>
             <span class="brand-copy">
@@ -11,17 +17,27 @@
         </a>
 
         <div class="profile-mini">
-            <div class="avatar">י</div>
-            <div>
-                <strong>יואב כהן</strong>
-                <small>תלמיד</small>
+            <div class="avatar">
+                @(Session.IsLoggedIn ? Session.Username.Substring(0, 1).ToUpper() : "א")
             </div>
+
+            <div>
+                <strong>
+                    @(Session.IsLoggedIn ? Session.Username : "אורח")
+                </strong>
+
+                <small>
+                    @(Session.IsLoggedIn ? Session.RoleName : "")
+                </small>
+            </div>
+
             <span class="profile-dot"></span>
         </div>
 
         <div class="nav-caption">התפריט שלי</div>
 
         <nav class="side-nav">
+
             <NavLink href="/" Match="NavLinkMatch.All">
                 <span class="nav-icon">⌂</span>
                 <span>דף הבית</span>
@@ -47,11 +63,13 @@
                 <span class="nav-icon">✓</span>
                 <span>שאלון ידע</span>
             </NavLink>
+
         </nav>
 
         <div class="nav-caption nav-caption-spaced">ניהול</div>
 
         <nav class="side-nav">
+
             <NavLink href="/teacher">
                 <span class="nav-icon">▣</span>
                 <span>ניהול מורה</span>
@@ -61,25 +79,45 @@
                 <span class="nav-icon">⚙</span>
                 <span>ניהול מערכת</span>
             </NavLink>
+
         </nav>
 
         <div class="sidebar-bottom">
+
             <div class="help-box">
                 <span class="help-icon">?</span>
+
                 <div>
                     <strong>צריכים עזרה?</strong>
                     <small>אנחנו כאן בשבילכם</small>
                 </div>
             </div>
 
-            <a class="logout-link" href="/login">
-                <span>↪</span> יציאה מהמערכת
-            </a>
+            @if (Session.IsLoggedIn)
+            {
+                <button class="logout-link"
+                        type="button"
+                        @onclick="Logout">
+                    <span>↪</span>
+                    יציאה מהמערכת
+                </button>
+            }
+            else
+            {
+                <a class="logout-link" href="/login">
+                    <span>↪</span>
+                    כניסה למערכת
+                </a>
+            }
+
         </div>
+
     </aside>
 
     <section class="workspace">
+
         <header class="topbar">
+
             <div class="breadcrumb">
                 <span>מרחב למידה</span>
                 <span class="breadcrumb-sep">/</span>
@@ -87,6 +125,7 @@
             </div>
 
             <div class="topbar-actions">
+
                 <button class="icon-button"
                         title="התראות"
                         aria-label="התראות">
@@ -95,11 +134,42 @@
                 </button>
 
                 <div class="topbar-user">
-                    <div class="avatar avatar-small">י</div>
-                    <span>שלום, יואב!</span>
+
+                    <div class="avatar avatar-small">
+                        @(Session.IsLoggedIn
+                            ? Session.Username.Substring(0, 1).ToUpper()
+                            : "א")
+                    </div>
+
+                    @if (Session.IsLoggedIn)
+                    {
+                        <span>שלום, @Session.Username!</span>
+
+                        <button class="btn btn-outline-primary"
+                                type="button"
+                                @onclick="Logout">
+                            יציאה
+                        </button>
+                    }
+                    else
+                    {
+                        <span>שלום, אורח</span>
+
+                        <a class="btn btn-outline-primary" href="/login">
+                            כניסה
+                        </a>
+
+                        <a class="btn btn-primary" href="/register">
+                            הרשמה
+                        </a>
+                    }
+
                     <span class="chevron">⌄</span>
+
                 </div>
+
             </div>
+
         </header>
 
         <main class="page-body">
@@ -109,10 +179,37 @@
         <footer class="site-footer">
             <span>© 2026 חוק וזכות</span>
             <span>ידע על הזכויות שלך הוא כוח</span>
+
             <span class="footer-links">
                 <a href="/laws">מאגר חוקים</a>
                 <a href="/consultation">ייעוץ</a>
             </span>
         </footer>
+
     </section>
+
 </div>
+
+@code {
+
+    protected override void OnInitialized()
+    {
+        Session.OnChange += OnSessionChanged;
+    }
+
+    private void OnSessionChanged()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void Logout()
+    {
+        Session.Logout();
+        Navigation.NavigateTo("/");
+    }
+
+    public void Dispose()
+    {
+        Session.OnChange -= OnSessionChanged;
+    }
+}
