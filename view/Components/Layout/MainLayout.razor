@@ -70,15 +70,21 @@
 
         <nav class="side-nav">
 
-            <NavLink href="/teacher">
-                <span class="nav-icon">▣</span>
-                <span>ניהול מורה</span>
-            </NavLink>
+            @if (Session.IsLoggedIn && Session.RoleName == "Teacher")
+            {
+                <NavLink href="/teacher">
+                    <span class="nav-icon">▣</span>
+                    <span>ניהול מורה</span>
+                </NavLink>
+            }
 
-            <NavLink href="/admin">
-                <span class="nav-icon">⚙</span>
-                <span>ניהול מערכת</span>
-            </NavLink>
+            @if (Session.IsLoggedIn && Session.RoleName == "Admin")
+            {
+                <NavLink href="/admin">
+                    <span class="nav-icon">⚙</span>
+                    <span>ניהול מערכת</span>
+                </NavLink>
+            }
 
         </nav>
 

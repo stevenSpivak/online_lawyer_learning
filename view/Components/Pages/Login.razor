@@ -61,7 +61,7 @@
                 <input id="email"
                        type="text"
                        @bind="email"
-                       placeholder="name@example.com"
+                       placeholder="username"
                        autocomplete="username" />
             </div>
 
@@ -169,7 +169,22 @@
             // Save the logged-in user in UserSession
             Session.Login(user);
 
-            Navigation.NavigateTo("/");
+            if (Session.RoleName == "Admin")
+            {
+                Navigation.NavigateTo("/admin");
+            }
+            else if (Session.RoleName == "Teacher")
+            {
+                Navigation.NavigateTo("/teacher");
+            }
+            else if (Session.RoleName == "Student")
+            {
+                Navigation.NavigateTo("/student");
+            }
+            else
+            {
+                Navigation.NavigateTo("/no-permission");
+            }
         }
         catch (HttpRequestException)
         {

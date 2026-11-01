@@ -1,0 +1,33 @@
+﻿@page "/student"
+
+@using view.Services
+
+@inject UserSession Session
+@inject NavigationManager Navigation
+
+<PageTitle>תלמיד | חוק וזכות</PageTitle>
+
+@if (!Session.IsLoggedIn)
+{
+    Navigation.NavigateTo("/login");
+}
+else if (Session.RoleName != "Student")
+{
+    Navigation.NavigateTo("/no-permission");
+}
+else
+{
+    <div class="page-content">
+
+        <h1>דף תלמיד</h1>
+
+        <p>
+            שלום, @Session.Username
+        </p>
+
+        <p>
+            ברוכים הבאים לאזור התלמידים של חוק וזכות.
+        </p>
+
+    </div>
+}
