@@ -1,22 +1,19 @@
 ﻿@page "/admin"
 
+@using System.Net.Http.Json
+@using Model
 @using view.Services
 
 @inject LawApiClient LawApi
+@inject HttpClient Http
 @inject UserSession Session
 @inject NavigationManager Navigation
 
 <PageTitle>ניהול מערכת | חוק וזכות</PageTitle>
 
-<PageTitle>ניהול מערכת | חוק וזכות</PageTitle>
-
-@if (!Session.IsLoggedIn)
+@if (!isAuthorized)
 {
-    Navigation.NavigateTo("/login");
-}
-else if (Session.RoleName != "Admin")
-{
-    Navigation.NavigateTo("/no-permission");
+    <p>מעביר אותך...</p>
 }
 else
 {
@@ -29,22 +26,31 @@ else
         <div class="heading-icon">⚙</div>
     </div>
 
+    @if (!string.IsNullOrWhiteSpace(feedback))
+    {
+        <div class="inline-feedback feedback-success">
+            @feedback
+        </div>
+    }
+
+    @* Statistics *@
     <section class="stats-grid stats-grid-three">
+
         <div class="stat-card panel">
             <div class="stat-icon icon-blue">♙</div>
             <div>
                 <span>משתמשים רשומים</span>
                 <strong>@users.Count</strong>
-                <small>נתוני דוגמה</small>
+                <small>משתמשים במסד הנתונים</small>
             </div>
         </div>
 
         <div class="stat-card panel">
             <div class="stat-icon icon-gold">◷</div>
             <div>
-                <span>בקשות לאישור</span>
-                <strong>@users.Count(u => u.Status == "ממתין")</strong>
-                <small>ממתינות לבדיקה</small>
+                <span>משתמשים חסומים</span>
+                <strong>@users.Count(u => !u.IsActive)</strong>
+                <small>חשבונות שאינם פעילים</small>
             </div>
         </div>
 
@@ -56,16 +62,12 @@ else
                 <small>חוקים ונושאים במאגר</small>
             </div>
         </div>
+
     </section>
 
-    @if (!string.IsNullOrWhiteSpace(feedback))
-    {
-        <div class="inline-feedback feedback-success">
-            @feedback
-        </div>
-    }
-
+    @* User Management *@
     <section class="panel management-panel">
+
         <div class="panel-heading">
             <div>
                 <span class="eyebrow">הרשאות וגישה</span>
@@ -73,257 +75,225 @@ else
             </div>
 
             <div class="table-toolbar">
+
                 <input @bind="userSearch"
-                @bind:event="oninput"
-                placeholder="חיפוש משתמש..." />
+                       @bind:event="oninput"
+                       placeholder="חיפוש משתמש..." />
 
                 <select @bind="roleFilter">
-                    <option>כל התפקידים</option>
-                    <option>תלמיד</option>
-                    <option>מורה</option>
-                    <option>מנהל מערכת</option>
+                    <option value="כל התפקידים">כל התפקידים</option>
+                    <option value="תלמיד">תלמיד</option>
+                    <option value="מורה">מורה</option>
+                    <option value="מנהל מערכת">מנהל מערכת</option>
                 </select>
+
             </div>
         </div>
 
-        <div class="table-wrap">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>משתמש</th>
-                        <th>אימייל</th>
-                        <th>תפקיד</th>
-                        <th>סטטוס</th>
-                        <th>פעולות</th>
-                    </tr>
-                </thead>
+        @if (isLoadingUsers)
+        {
+            <p>טוען משתמשים...</p>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table class="data-table">
 
-                <tbody>
-                    @foreach (var user in FilteredUsers)
-                    {
+                    <thead>
                         <tr>
-                            <td>
-                                <div class="person-cell">
-                                    <span class="avatar avatar-table">
-                                        @user.Name.Substring(0, 1)
-                                    </span>
-                                    <strong>@user.Name</strong>
-                                </div>
-                            </td>
-
-                            <td>@user.Email</td>
-                            <td>@user.Role</td>
-
-                            <td>
-                                <span class="pill @(user.Status == "פעיל" ? "pill-green" : user.Status == "ממתין" ? "pill-gold" : "pill-gray")">
-                                    @user.Status
-                                </span>
-                            </td>
-
-                            <td>
-                                @if (user.Status == "ממתין")
-                                {
-                                    <button class="table-action"
-                                    @onclick="() => Approve(user)">
-                                        אישור
-                                    </button>
-                                }
-
-                                <button class="table-action @(user.Status == "חסום" ? "" : "table-action-danger")"
-                                @onclick="() => ToggleBlock(user)">
-                                    @(user.Status == "חסום" ? "פתיחה" : "חסימה")
-                                </button>
-                            </td>
+                            <th>משתמש</th>
+                            <th>אימייל</th>
+                            <th>תפקיד</th>
+                            <th>סטטוס</th>
+                            <th>פעולות</th>
                         </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
+                    </thead>
 
-        @if (!FilteredUsers.Any())
-        {
-            <div class="empty-inline">
-                לא נמצאו משתמשים מתאימים.
+                    <tbody>
+                        @foreach (var user in FilteredUsers)
+                        {
+                            <tr @key="user.Id">
+
+                                <td>
+                                    <div class="person-cell">
+                                        <span class="avatar avatar-table">
+                                            @(string.IsNullOrWhiteSpace(user.Username)
+                                                ? "?"
+                                                : user.Username.Substring(0, 1).ToUpper())
+                                        </span>
+
+                                        <strong>@user.Username</strong>
+                                    </div>
+                                </td>
+
+                                <td>@user.Email</td>
+
+                                <td>@GetHebrewRole(user.RoleName)</td>
+
+                                <td>
+                                    <span class="pill @(user.IsActive ? "pill-green" : "pill-gray")">
+                                        @(user.IsActive ? "פעיל" : "חסום")
+                                    </span>
+                                </td>
+
+                                <td>
+                                    <button class="table-action @(user.IsActive ? "table-action-danger" : "")"
+                                            disabled="@isUpdatingUser"
+                                            @onclick="() => ToggleBlock(user)">
+
+                                        @(user.IsActive ? "חסימה" : "פתיחה")
+
+                                    </button>
+                                </td>
+
+                            </tr>
+                        }
+                    </tbody>
+
+                </table>
             </div>
+
+            @if (!FilteredUsers.Any())
+            {
+                <div class="empty-inline">
+                    לא נמצאו משתמשים מתאימים.
+                </div>
+            }
         }
-    </section>
 
-    <section class="panel management-panel moderation-panel">
-        <div class="panel-heading">
-            <div>
-                <span class="eyebrow">שמירה על סביבת למידה</span>
-                <h2>בדיקת תוכן מדווח</h2>
-            </div>
-            <span class="pill pill-gold">2 פריטים לדוגמה</span>
-        </div>
-
-        <div class="moderation-item">
-            <div class="moderation-icon">☏</div>
-
-            <div class="moderation-copy">
-                <strong>תגובה שדורשת בדיקה</strong>
-                <p>תגובה שדווחה בשיעור ״זכויות אדם ואזרח״.</p>
-                <small>דיווח לדוגמה · לפני 25 דקות</small>
-            </div>
-
-            <div class="moderation-actions">
-                <button class="btn btn-secondary btn-small"
-                @onclick="() => ResolveReport(1)">
-                    השארת תוכן
-                </button>
-
-                <button class="btn btn-danger btn-small"
-                @onclick="() => ResolveReport(1, true)">
-                    הסרת תוכן
-                </button>
-            </div>
-        </div>
-
-        <div class="moderation-item">
-            <div class="moderation-icon moderation-icon-orange">⚑</div>
-
-            <div class="moderation-copy">
-                <strong>שאלה שסומנה לבדיקה</strong>
-                <p>פנייה שממתינה לסקירה של צוות ההוראה.</p>
-                <small>דיווח לדוגמה · לפני שעה</small>
-            </div>
-
-            <div class="moderation-actions">
-                <button class="btn btn-secondary btn-small"
-                @onclick="() => ResolveReport(2)">
-                    סימון כטופל
-                </button>
-
-                <button class="btn btn-danger btn-small"
-                @onclick="() => ResolveReport(2, true)">
-                    הסרת תוכן
-                </button>
-            </div>
-        </div>
-
-        @if (resolvedReports.Count > 0)
-        {
-            <div class="resolved-summary">
-                טופלו באב-טיפוס: @resolvedReports.Count פריטים.
-            </div>
-        }
     </section>
 
     <div class="admin-note">
         <span>ⓘ</span>
         <p>
-            הפעולות במסך זה משנות נתונים זמניים בזיכרון בלבד.
-            במערכת אמיתית נדרשים אימות משתמשים, הרשאות שרת,
-            תיעוד פעולות ושמירה במסד נתונים.
+            נתוני המשתמשים והתכנים נטענים ממסד הנתונים דרך השרת.
+            פעולות הניהול נשמרות במסד הנתונים.
         </p>
     </div>
+}
 
-    @code {
-        private int lawCount = 0;
+@code {
 
-        protected override async Task OnInitializedAsync()
+    private bool isAuthorized;
+    private bool isLoadingUsers;
+    private bool isUpdatingUser;
+
+    private int lawCount;
+
+    private List<User> users = new();
+
+    private string userSearch = "";
+    private string roleFilter = "כל התפקידים";
+    private string feedback = "";
+
+    // Filter users by role, username or email
+    private IEnumerable<User> FilteredUsers =>
+        users.Where(user =>
+            (roleFilter == "כל התפקידים" ||
+             GetHebrewRole(user.RoleName) == roleFilter)
+            &&
+            $"{user.Username} {user.Email}".Contains(
+                userSearch.Trim(),
+                StringComparison.OrdinalIgnoreCase));
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Check login
+        if (!Session.IsLoggedIn)
         {
-            try
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        // Check administrator permission
+        if (Session.RoleName != "Admin")
+        {
+            Navigation.NavigateTo("/no-permission");
+            return;
+        }
+
+        isAuthorized = true;
+
+        await LoadUsersAsync();
+
+        try
+        {
+            var laws = await LawApi.GetLawsAsync();
+            lawCount = laws?.Count ?? 0;
+        }
+        catch (HttpRequestException)
+        {
+            lawCount = 0;
+            feedback = "לא ניתן לטעון את התכנים מהשרת.";
+        }
+    }
+
+    // Load users from API
+    private async Task LoadUsersAsync()
+    {
+        isLoadingUsers = true;
+
+        try
+        {
+            users = await Http.GetFromJsonAsync<List<User>>("api/users")
+                    ?? new List<User>();
+        }
+        catch (HttpRequestException)
+        {
+            feedback = "לא ניתן לטעון את המשתמשים מהשרת.";
+        }
+        finally
+        {
+            isLoadingUsers = false;
+        }
+    }
+
+    // Translate role names to Hebrew
+    private string GetHebrewRole(string? roleName)
+    {
+        return roleName switch
+        {
+            "Admin" => "מנהל מערכת",
+            "Teacher" => "מורה",
+            _ => "תלמיד"
+        };
+    }
+
+    // Block or unblock a user
+    private async Task ToggleBlock(User user)
+    {
+        if (isUpdatingUser)
+            return;
+
+        isUpdatingUser = true;
+
+        bool newStatus = !user.IsActive;
+
+        try
+        {
+            using HttpResponseMessage response = await Http.PutAsync(
+                $"api/users/{user.Id}/status?isActive={newStatus}",
+                null);
+
+            if (!response.IsSuccessStatusCode)
             {
-                var laws = await LawApi.GetLawsAsync();
-                lawCount = laws.Count;
+                feedback = "לא ניתן לשנות את סטטוס המשתמש.";
+                return;
             }
-            catch
-            {
-                lawCount = 0;
-            }
+
+            user.IsActive = newStatus;
+
+            feedback = newStatus
+                ? $"הגישה של ״{user.Username}״ הופעלה."
+                : $"המשתמש ״{user.Username}״ נחסם.";
         }
-
-        private sealed class UserRow
+        catch (HttpRequestException)
         {
-            public string Name { get; init; } = "";
-            public string Email { get; init; } = "";
-            public string Role { get; init; } = "";
-            public string Status { get; set; } = "";
+            feedback = "השרת לא זמין כרגע.";
         }
-
-        private readonly List<UserRow> users = new()
-            {
-                new()
-                {
-                    Name = "יואב כהן",
-                    Email = "yoav@example.com",
-                    Role = "תלמיד",
-                    Status = "פעיל"
-                },
-                new()
-                {
-                    Name = "מיכל לוי",
-                    Email = "michal@example.com",
-                    Role = "מורה",
-                    Status = "פעיל"
-                },
-                new()
-                {
-                    Name = "דניאל שפירא",
-                    Email = "daniel@example.com",
-                    Role = "מורה",
-                    Status = "ממתין"
-                },
-                new()
-                {
-                    Name = "שירה לוי",
-                    Email = "shira@example.com",
-                    Role = "תלמיד",
-                    Status = "פעיל"
-                },
-                new()
-                {
-                    Name = "עידו ברק",
-                    Email = "ido@example.com",
-                    Role = "תלמיד",
-                    Status = "ממתין"
-                },
-                new()
-                {
-                    Name = "מנהלת מערכת",
-                    Email = "admin@example.com",
-                    Role = "מנהל מערכת",
-                    Status = "פעיל"
-                }
-            };
-
-        private string userSearch = "";
-        private string roleFilter = "כל התפקידים";
-        private string feedback = "";
-
-        private readonly HashSet<int> resolvedReports = new();
-
-        private IEnumerable<UserRow> FilteredUsers =>
-            users.Where(u =>
-                (roleFilter == "כל התפקידים" ||
-                 u.Role == roleFilter) &&
-                $"{u.Name} {u.Email}".Contains(
-                    userSearch.Trim(),
-                    StringComparison.OrdinalIgnoreCase));
-
-        private void Approve(UserRow user)
+        finally
         {
-            user.Status = "פעיל";
-            feedback = $"המשתמש/ת ״{user.Name}״ אושר/ה באב-טיפוס.";
-        }
-
-        private void ToggleBlock(UserRow user)
-        {
-            user.Status = user.Status == "חסום" ? "פעיל" : "חסום";
-
-            feedback = user.Status == "חסום"
-                ? $"המשתמש/ת ״{user.Name}״ נחסם/ה ברשימה המקומית."
-                : $"הגישה של ״{user.Name}״ סומנה כפעילה.";
-        }
-
-        private void ResolveReport(int id, bool remove = false)
-        {
-            resolvedReports.Add(id);
-
-            feedback = remove
-                ? "התוכן סומן להסרה באב-טיפוס."
-                : "הדיווח סומן כטופל באב-טיפוס.";
+            isUpdatingUser = false;
         }
     }
 }

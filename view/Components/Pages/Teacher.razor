@@ -1,5 +1,8 @@
 ﻿@page "/teacher"
 @using view.Services
+@using Model
+
+@inject ClassApiClient ClassApi
 @inject UserSession Session
 @inject NavigationManager Navigation
 
@@ -40,8 +43,10 @@ else
                 <input @bind="newClassName"
                 placeholder="לדוגמה: מבוא לזכויות אזרח" />
 
-                <button class="btn btn-primary" @onclick="CreateClass">
-                    יצירת כיתה
+                <button class="btn btn-primary"
+                        disabled="@isSaving"
+                        @onclick="CreateClass">
+                    @(isSaving ? "שומר..." : "יצירת כיתה")
                 </button>
 
                 <button class="btn btn-secondary" @onclick="ToggleCreate">
@@ -79,7 +84,7 @@ else
             <div class="stat-icon icon-teal">▤</div>
             <div>
                 <span>כיתות פעילות</span>
-                <strong>@classNames.Count</strong>
+                <strong>@classrooms.Count</strong>
                 <small>כולל כיתות שנוצרו כאן</small>
             </div>
         </div>
@@ -142,7 +147,7 @@ else
                                     <span class="table-icon">▤</span>
                                     <div>
                                         <strong>@classroom.Name</strong>
-                                        <small>@classroom.Subject</small>
+                                        <small>@classroom.Name</small>
                                     </div>
                                 </div>
                             </td>
@@ -164,7 +169,7 @@ else
                                 </button>
 
                                 <button class="table-action table-action-danger"
-                                @onclick="() => RemoveClass(classroom.Name)">
+                                        @onclick="() => RemoveClass(classroom)">
                                     הסרה
                                 </button>
                             </td>
@@ -267,31 +272,9 @@ else
         </div>
     </section>
 
-    @code {
-        private sealed record Classroom(
-                string Name,
-                string Subject,
-                string Code,
-                int Students);
-
-        private readonly List<Classroom> classrooms = new()
-            {
-                new("זכויות אדם ואזרח",
-                    "כיתה י׳ · אזרחות",
-                    "7F3B",
-                    28),
-
-                new("חוקי יסוד בישראל",
-                    "כיתה י׳ · מבוא למשפט",
-                    "9A2C",
-                    24)
-            };
-
-        private readonly List<string> classNames = new()
-            {
-                "זכויות אדם ואזרח",
-                "חוקי יסוד בישראל"
-            };
+    @code
+    {
+        private List<Classroom> classrooms = new();
 
         private string classSearch = "";
         private bool showCreate;
@@ -299,10 +282,53 @@ else
         private string createMessage = "";
         private string pageMessage = "";
 
+        private bool isLoading;
+        private bool isSaving;
+
         private IEnumerable<Classroom> FilteredClasses =>
             classrooms.Where(c =>
-                c.Name.Contains(classSearch.Trim(),
+                c.Name.Contains(
+                    classSearch.Trim(),
                     StringComparison.OrdinalIgnoreCase));
+
+        protected override async Task OnInitializedAsync()
+        {
+            if (!Session.IsLoggedIn)
+            {
+                Navigation.NavigateTo("/login");
+                return;
+            }
+
+            if (Session.RoleName != "Teacher")
+            {
+                Navigation.NavigateTo("/no-permission");
+                return;
+            }
+
+            await LoadClassesAsync();
+        }
+
+        // טוען את הכיתות האמיתיות ממסד הנתונים.
+        private async Task LoadClassesAsync()
+        {
+            isLoading = true;
+
+            try
+            {
+                classrooms =
+                    await ClassApi.GetTeacherClassesAsync(
+                        Session.UserId);
+            }
+            catch (HttpRequestException)
+            {
+                pageMessage =
+                    "לא ניתן להתחבר לשרת כרגע.";
+            }
+            finally
+            {
+                isLoading = false;
+            }
+        }
 
         private void ToggleCreate()
         {
@@ -310,55 +336,91 @@ else
             createMessage = "";
         }
 
-        private void CreateClass()
+        // יוצר כיתה ושומר אותה במסד הנתונים.
+        private async Task CreateClass()
         {
-            var name = newClassName.Trim();
+            createMessage = "";
+
+            string name =
+                newClassName.Trim();
 
             if (name.Length < 3)
             {
-                createMessage = "שם הכיתה צריך להכיל לפחות 3 תווים.";
+                createMessage =
+                    "שם הכיתה צריך להכיל לפחות 3 תווים.";
                 return;
             }
 
-            if (classrooms.Any(c =>
-                c.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
+            isSaving = true;
+
+            try
             {
-                createMessage = "כיתה בשם הזה כבר קיימת.";
-                return;
+                bool created =
+                    await ClassApi.CreateClassAsync(
+                        name,
+                        Session.UserId);
+
+                if (!created)
+                {
+                    createMessage =
+                        "לא ניתן ליצור את הכיתה.";
+                    return;
+                }
+
+                newClassName = "";
+
+                createMessage =
+                    "הכיתה נוצרה ונשמרה במסד הנתונים.";
+
+                pageMessage = "";
+
+                await LoadClassesAsync();
             }
-
-            var code = Guid.NewGuid().ToString("N")[..4].ToUpperInvariant();
-
-            classrooms.Add(new Classroom(
-                name,
-                "כיתה חדשה",
-                code,
-                0));
-
-            classNames.Add(name);
-
-            createMessage =
-                $"הכיתה נוספה לאב-טיפוס. קוד הדוגמה: {code}";
-
-            newClassName = "";
-
-            pageMessage =
-                "הכיתה נוצרה בממשק המקומי. היא לא נשמרה במסד נתונים.";
+            catch (HttpRequestException)
+            {
+                createMessage =
+                    "השרת לא זמין כרגע.";
+            }
+            finally
+            {
+                isSaving = false;
+            }
         }
 
-        private void RemoveClass(string name)
+        // מוחק כיתה ממסד הנתונים.
+        private async Task RemoveClass(
+            Classroom classroom)
         {
-            classrooms.RemoveAll(c => c.Name == name);
-            classNames.Remove(name);
+            try
+            {
+                bool deleted =
+                    await ClassApi.DeleteClassAsync(
+                        classroom.Id,
+                        Session.UserId);
 
-            pageMessage =
-                $"הכיתה ״{name}״ הוסרה מהרשימה המקומית.";
+                if (!deleted)
+                {
+                    pageMessage =
+                        "לא ניתן להסיר את הכיתה.";
+                    return;
+                }
+
+                pageMessage =
+                    $"הכיתה ״{classroom.Name}״ הוסרה.";
+
+                await LoadClassesAsync();
+            }
+            catch (HttpRequestException)
+            {
+                pageMessage =
+                    "השרת לא זמין כרגע.";
+            }
         }
 
         private void ShowClass(string name)
         {
             pageMessage =
-                $"נבחרה הכיתה ״{name}״. מסך פרטי כיתה יחובר בהמשך.";
+                $"נבחרה הכיתה ״{name}״.";
         }
     }
 }

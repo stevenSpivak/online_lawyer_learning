@@ -14,6 +14,7 @@ namespace OLL.api
                 + "Database=OLLDB;";
             builder.Services.AddSingleton(new DAL.UserDB(dbConnectionString));
             builder.Services.AddSingleton(new DAL.LawCatalog(dbConnectionString));
+            builder.Services.AddSingleton(new DAL.ClassDB(dbConnectionString));
 
             var app = builder.Build();
 

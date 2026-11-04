@@ -26,6 +26,11 @@ builder.Services.AddHttpClient<view.Services.LawApiClient>(
     {
         client.BaseAddress = new Uri(apiBaseUrl);
     });
+builder.Services.AddHttpClient<view.Services.ClassApiClient>(
+    client =>
+    {
+        client.BaseAddress = new Uri(apiBaseUrl);
+    });
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();

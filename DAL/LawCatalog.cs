@@ -24,7 +24,6 @@ public class LawCatalog
                 l.Content,
                 l.CategoryID,
                 c.CategoryName,
-                l.CreatedAt
             FROM Laws l
             INNER JOIN Categories c
                 ON c.CategoryID = l.CategoryID
@@ -87,7 +86,6 @@ public class LawCatalog
                 l.Content,
                 l.CategoryID,
                 c.CategoryName,
-                l.CreatedAt
             FROM Laws l
             INNER JOIN Categories c
                 ON c.CategoryID = l.CategoryID
@@ -158,9 +156,6 @@ public class LawCatalog
 
     private static Law ReadLaw(DbDataReader reader)
     {
-        int createdAtIndex =
-            reader.GetOrdinal("CreatedAt");
-
         return new Law
         {
             Id = reader.GetInt32(
@@ -178,10 +173,6 @@ public class LawCatalog
             CategoryName = reader.GetString(
                 reader.GetOrdinal("CategoryName")),
 
-            CreatedAt =
-                reader.IsDBNull(createdAtIndex)
-                    ? null
-                    : reader.GetDateTime(createdAtIndex)
         };
     }
 }

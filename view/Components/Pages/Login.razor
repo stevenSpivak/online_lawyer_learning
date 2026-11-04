@@ -52,15 +52,15 @@
             <h2>כניסה למערכת</h2>
             <p class="auth-subtitle">התחברו לחשבון כדי להמשיך ללמוד.</p>
 
-            <label class="field-label" for="email">
-                שם משתמש או אימייל
+            <label class="field-label" for="username">
+                שם משתמש
             </label>
 
             <div class="input-wrap">
                 <span>♙</span>
-                <input id="email"
+                <input id="username"
                        type="text"
-                       @bind="email"
+                       @bind="username"
                        placeholder="username"
                        autocomplete="username" />
             </div>
@@ -113,7 +113,7 @@
 
 
 @code {
-    private string email = "";
+    private string username = "";
     private string password = "";
     private bool rememberMe;
     private string errorMessage = "";
@@ -123,7 +123,7 @@
     {
         errorMessage = "";
 
-        if (string.IsNullOrWhiteSpace(email) ||
+        if (string.IsNullOrWhiteSpace(username) ||
             string.IsNullOrWhiteSpace(password))
         {
             errorMessage = "יש למלא שם משתמש וסיסמה.";
@@ -136,7 +136,7 @@
         {
             User credentials = new User
             {
-                Username = email.Trim(),
+                Username = username.Trim(),
                 PasswordHash = password
             };
 
@@ -179,7 +179,7 @@
             }
             else if (Session.RoleName == "Student")
             {
-                Navigation.NavigateTo("/student");
+                Navigation.NavigateTo("/");
             }
             else
             {
